@@ -2,11 +2,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/analysis_result.dart';
 import '../theme/seductive_colors.dart';
+import 'premium_blur_overlay.dart';
 
 class VibeCard extends StatefulWidget {
   final AnalysisResult result;
+  final bool isPremium;
+  final VoidCallback? onUnlockFlags;
 
-  const VibeCard({super.key, required this.result});
+  const VibeCard({
+    super.key,
+    required this.result,
+    this.isPremium = true,
+    this.onUnlockFlags,
+  });
 
   @override
   State<VibeCard> createState() => _VibeCardState();
@@ -202,79 +210,86 @@ class _VibeCardState extends State<VibeCard> with SingleTickerProviderStateMixin
                             const SizedBox(height: 20),
                           ],
                           // Red & Green Flags (Tehlike & Firsat)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Tehlike (Red Flags)
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text('⚠️', style: TextStyle(fontSize: 16)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Tehlike',
+                          PremiumBlurOverlay(
+                            isLocked: !widget.isPremium,
+                            onUnlock: widget.onUnlockFlags,
+                            blurSigma: 6.0,
+                            customText: 'Flags\'i Gormek Icin',
+                            customIcon: Icons.visibility_rounded,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Tehlike (Red Flags)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text('⚠️', style: TextStyle(fontSize: 16)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Tehlike',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: SeductiveColors.dangerRed,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ...widget.result.redFlags.map((flag) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 4),
+                                        child: Text(
+                                          '• $flag',
                                           style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: SeductiveColors.dangerRed,
+                                            fontSize: 12,
+                                            color: SeductiveColors.dangerRed.withOpacity(0.8),
+                                            height: 1.4,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...widget.result.redFlags.map((flag) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Text(
-                                        '• $flag',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: SeductiveColors.dangerRed.withOpacity(0.8),
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    )),
-                                  ],
+                                      )),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              // Firsat (Green Flags)
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text('💎', style: TextStyle(fontSize: 16)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Firsat',
+                                const SizedBox(width: 16),
+                                // Firsat (Green Flags)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text('💎', style: TextStyle(fontSize: 16)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Firsat',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: SeductiveColors.successGreen,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ...widget.result.greenFlags.map((flag) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 4),
+                                        child: Text(
+                                          '• $flag',
                                           style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: SeductiveColors.successGreen,
+                                            fontSize: 12,
+                                            color: SeductiveColors.successGreen.withOpacity(0.8),
+                                            height: 1.4,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...widget.result.greenFlags.map((flag) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Text(
-                                        '• $flag',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: SeductiveColors.successGreen.withOpacity(0.8),
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    )),
-                                  ],
+                                      )),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
                           // Traits

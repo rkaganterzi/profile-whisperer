@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     claude_api_key: str = ""
 
     # Rate Limiting
-    daily_free_limit: int = 3
+    daily_free_limit: int = 2
 
     # Bridge (development mode)
     bridge_enabled: bool = True

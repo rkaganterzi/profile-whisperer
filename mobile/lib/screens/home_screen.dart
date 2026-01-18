@@ -8,14 +8,17 @@ import '../providers/analysis_provider.dart';
 import '../providers/history_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/streak_provider.dart';
 import '../theme/seductive_colors.dart';
 import '../services/analytics_service.dart';
+import '../services/ad_service.dart';
 import '../animations/page_transitions.dart';
 import '../widgets/effects/light_leak.dart';
 import '../widgets/effects/particle_background.dart';
 import '../widgets/core/glow_button.dart';
 import '../widgets/core/neon_text.dart';
 import '../widgets/loading/ai_loading_indicator.dart';
+import '../widgets/streak_bonus_dialog.dart';
 import 'result_screen.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
@@ -63,6 +66,55 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // Log screen view
     _analytics.logScreenView('home_screen');
+
+    // Check streak and show bonus dialog if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkStreakBonus();
+    });
+  }
+
+  void _checkStreakBonus() async {
+    final streakProvider = context.read<StreakProvider>();
+    await streakProvider.checkAndUpdateStreak();
+
+    if (streakProvider.showBonusDialog && mounted) {
+      _showStreakBonusDialog();
+    }
+  }
+
+  void _showStreakBonusDialog() {
+    final streakProvider = context.read<StreakProvider>();
+    final authProvider = context.read<AuthProvider>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StreakBonusDialog(
+        streakDay: streakProvider.pendingBonusDay,
+        currentStreak: streakProvider.streak.currentStreak,
+        isPremium: authProvider.isPremium,
+        onClaim: () async {
+          Navigator.pop(context);
+          int credits = 0;
+          if (streakProvider.pendingBonusDay == 3) {
+            credits = await streakProvider.claimDay3Bonus(authProvider.isPremium);
+          } else if (streakProvider.pendingBonusDay == 7) {
+            credits = await streakProvider.claimDay7Bonus(authProvider.isPremium);
+          }
+          if (credits > 0) {
+            await authProvider.addCredits(credits);
+            _analytics.logStreakBonusClaimed(
+              day: streakProvider.pendingBonusDay,
+              credits: credits,
+            );
+          }
+        },
+        onDismiss: () {
+          Navigator.pop(context);
+          streakProvider.dismissBonusDialog();
+        },
+      ),
+    );
   }
 
   @override
@@ -75,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _checkCredits() {
     final authProvider = context.read<AuthProvider>();
     if (!authProvider.canAnalyze) {
-      // Show paywall
+      // Show paywall with rewarded ad option
       showModalBottomSheet(
         context: context,
         backgroundColor: Colors.transparent,
@@ -132,6 +184,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                 ),
                 const SizedBox(height: 24),
+                // Rewarded Ad Button
+                if (AdService().isRewardedAdReady)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _showRewardedAdForCredit();
+                        },
+                        icon: const Icon(
+                          Icons.play_circle_outline_rounded,
+                          color: SeductiveColors.neonMagenta,
+                        ),
+                        label: const Text(
+                          'Reklam Izle = +1 Analiz',
+                          style: TextStyle(
+                            color: SeductiveColors.neonMagenta,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(
+                            color: SeductiveColors.neonMagenta,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 GlowButton(
                   text: 'Guc Al',
                   onPressed: () {
@@ -150,6 +237,168 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       return false;
     }
     return true;
+  }
+
+  Future<void> _showRewardedAdForCredit() async {
+    final adService = AdService();
+    final authProvider = context.read<AuthProvider>();
+
+    final shown = await adService.showRewardedAd(
+      onRewarded: (amount) async {
+        // Award 1 credit regardless of the reward amount from AdMob
+        await authProvider.addCredits(1);
+        _analytics.logRewardedAdWatched(credits: 1);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: SeductiveColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.flash_on_rounded,
+                      color: SeductiveColors.lunarWhite,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '+1 Analiz hakki kazandin!',
+                    style: TextStyle(color: SeductiveColors.lunarWhite),
+                  ),
+                ],
+              ),
+              backgroundColor: SeductiveColors.velvetPurple,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                ),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+    );
+
+    if (!shown) {
+      _analytics.logRewardedAdFailed(reason: 'ad_not_ready');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reklam yukleniyor, lutfen tekrar deneyin.'),
+            backgroundColor: SeductiveColors.neonCoral,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showStreakInfoDialog(int streak) {
+    final streakProvider = context.read<StreakProvider>();
+    final nextMilestone = streakProvider.streak.nextMilestone;
+    final daysUntil = streakProvider.streak.daysUntilNextMilestone;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: SeductiveColors.velvetPurple,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '🔥',
+              style: TextStyle(fontSize: 48),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '$streak Gun Seri!',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: SeductiveColors.lunarWhite,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Her gun gir, oduller kazan!',
+              style: TextStyle(
+                fontSize: 14,
+                color: SeductiveColors.silverMist,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SeductiveColors.obsidianDark,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Sonraki odul:',
+                        style: TextStyle(
+                          color: SeductiveColors.dustyRose,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        'Gun $nextMilestone',
+                        style: const TextStyle(
+                          color: SeductiveColors.neonMagenta,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: (streak % nextMilestone) / nextMilestone,
+                    backgroundColor: SeductiveColors.smokyViolet,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      SeductiveColors.neonMagenta,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$daysUntil gun kaldi',
+                    style: const TextStyle(
+                      color: SeductiveColors.silverMist,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Tamam',
+              style: TextStyle(color: SeductiveColors.neonMagenta),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _useCredit() async {
@@ -653,15 +902,37 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // History button
-                            _buildTopBarButton(
-                              icon: Icons.history_rounded,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  SeductivePageRoute(page: const HistoryScreen()),
-                                );
-                              },
+                            // Left side: History + Streak
+                            Row(
+                              children: [
+                                // History button
+                                _buildTopBarButton(
+                                  icon: Icons.history_rounded,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      SeductivePageRoute(page: const HistoryScreen()),
+                                    );
+                                  },
+                                ),
+                                // Streak badge
+                                Consumer<StreakProvider>(
+                                  builder: (context, streakProvider, _) {
+                                    final streak = streakProvider.streak.currentStreak;
+                                    if (streak <= 0) return const SizedBox.shrink();
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 4),
+                                      child: StreakBadge(
+                                        streakCount: streak,
+                                        onTap: () {
+                                          // Show streak info
+                                          _showStreakInfoDialog(streak);
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                             // Credits badge
                             Consumer<AuthProvider>(

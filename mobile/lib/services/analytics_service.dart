@@ -209,6 +209,48 @@ class AnalyticsService {
     }
   }
 
+  // ==================== REWARDED ADS EVENTS ====================
+
+  /// Log when rewarded ad is watched successfully
+  Future<void> logRewardedAdWatched({int credits = 1}) async {
+    await _logEvent('rewarded_ad_watched', {'credits_earned': credits});
+  }
+
+  /// Log when rewarded ad fails
+  Future<void> logRewardedAdFailed({required String reason}) async {
+    await _logEvent('rewarded_ad_failed', {'reason': reason});
+  }
+
+  // ==================== SHARE BONUS EVENTS ====================
+
+  /// Log when share bonus is claimed
+  Future<void> logShareBonusClaimed({String? resultId, int credits = 1}) async {
+    await _logEvent('share_bonus_claimed', {
+      if (resultId != null) 'result_id': resultId,
+      'credits_earned': credits,
+    });
+  }
+
+  // ==================== STREAK EVENTS ====================
+
+  /// Log streak update
+  Future<void> logStreakUpdated({required int streak}) async {
+    await _logEvent('streak_updated', {'streak_count': streak});
+  }
+
+  /// Log streak bonus claimed
+  Future<void> logStreakBonusClaimed({required int day, required int credits}) async {
+    await _logEvent('streak_bonus_claimed', {
+      'bonus_day': day,
+      'credits_earned': credits,
+    });
+  }
+
+  /// Log streak broken
+  Future<void> logStreakBroken({required int previousStreak}) async {
+    await _logEvent('streak_broken', {'previous_streak': previousStreak});
+  }
+
   // ==================== SETTINGS EVENTS ====================
 
   /// Log when roast mode is toggled

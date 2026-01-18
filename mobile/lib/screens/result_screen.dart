@@ -9,6 +9,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/analysis_provider.dart';
+import '../providers/share_bonus_provider.dart';
 import '../services/sound_service.dart';
 import '../services/analytics_service.dart';
 import '../services/ad_service.dart';
@@ -18,6 +19,10 @@ import '../widgets/vibe_card.dart';
 import '../widgets/core/glow_button.dart';
 import '../widgets/core/neon_text.dart';
 import '../widgets/effects/light_leak.dart';
+import '../widgets/premium_blur_overlay.dart';
+import '../utils/premium_features.dart';
+import '../animations/page_transitions.dart';
+import 'paywall_screen.dart';
 
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key});
@@ -273,7 +278,20 @@ class _ResultScreenState extends State<ResultScreen>
                                     controller: _screenshotController,
                                     child: Container(
                                       color: SeductiveColors.voidBlack,
-                                      child: VibeCard(result: result),
+                                      child: Consumer<AuthProvider>(
+                                        builder: (context, authProvider, _) {
+                                          return VibeCard(
+                                            result: result,
+                                            isPremium: authProvider.isPremium,
+                                            onUnlockFlags: () {
+                                              Navigator.push(
+                                                context,
+                                                SeductivePageRoute(page: const PaywallScreen()),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 24),
@@ -365,30 +383,38 @@ class _ResultScreenState extends State<ResultScreen>
                                     ),
                                   ),
                                   const SizedBox(height: 16),
-                                  // Swipeable starters
-                                  SizedBox(
-                                    height: 180,
-                                    child: PageView.builder(
-                                      controller: _pageController,
-                                      itemCount:
-                                          result.conversationStarters.length,
-                                      onPageChanged: (index) {
-                                        setState(
-                                            () => _currentStarterIndex = index);
-                                        HapticFeedback.selectionClick();
-                                      },
-                                      itemBuilder: (context, index) {
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 4),
-                                          child: _buildSwipeableStarterCard(
-                                            context,
-                                            index + 1,
-                                            result.conversationStarters[index],
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                  // Swipeable starters with premium restrictions
+                                  Consumer<AuthProvider>(
+                                    builder: (context, authProvider, _) {
+                                      final isPremium = authProvider.isPremium;
+                                      final starterLimit = PremiumFeatures.getStarterLimit(isPremium);
+                                      final totalStarters = result.conversationStarters.length;
+
+                                      return SizedBox(
+                                        height: 180,
+                                        child: PageView.builder(
+                                          controller: _pageController,
+                                          itemCount: totalStarters,
+                                          onPageChanged: (index) {
+                                            setState(() => _currentStarterIndex = index);
+                                            HapticFeedback.selectionClick();
+                                          },
+                                          itemBuilder: (context, index) {
+                                            final isLocked = index >= starterLimit;
+                                            return Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                                              child: isLocked
+                                                  ? _buildLockedStarterCard(context, index + 1)
+                                                  : _buildSwipeableStarterCard(
+                                                      context,
+                                                      index + 1,
+                                                      result.conversationStarters[index],
+                                                    ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
                                   ),
                                   const SizedBox(height: 12),
                                   // Page indicator dots
@@ -652,7 +678,105 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 
-  void _shareResult(BuildContext context, result) {
+  Widget _buildLockedStarterCard(BuildContext context, int number) {
+    final labels = [
+      {'emoji': '', 'name': 'Merak', 'color': const Color(0xFF5C6BC0)},
+      {'emoji': '', 'name': 'Sakaci', 'color': const Color(0xFFFF7043)},
+      {'emoji': '', 'name': 'Komik', 'color': const Color(0xFFFFCA28)},
+      {'emoji': '', 'name': 'Smooth', 'color': const Color(0xFF26A69A)},
+      {'emoji': '', 'name': 'Cesur', 'color': const Color(0xFFEF5350)},
+    ];
+    final label = number <= labels.length ? labels[number - 1] : labels[0];
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          SeductivePageRoute(page: const PaywallScreen()),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              (label['color'] as Color).withOpacity(0.1),
+              SeductiveColors.velvetPurple.withOpacity(0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: SeductiveColors.neonMagenta.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Blurred placeholder content
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: SeductiveColors.velvetPurple.withOpacity(0.5),
+                ),
+              ),
+            ),
+            // Lock overlay
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: SeductiveColors.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: SeductiveColors.neonGlow(
+                        color: SeductiveColors.neonMagenta,
+                        blur: 15,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.lock_rounded,
+                      color: SeductiveColors.lunarWhite,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: label['color'] as Color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      label['name'] as String,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Premium ile Ac',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: SeductiveColors.dustyRose,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareResultWithBonus(BuildContext context, result) async {
     // Log analytics
     _analytics.logShareResult(method: 'text');
 
@@ -668,6 +792,96 @@ Firsat: ${result.greenFlags.join(' - ')}
 ${result.compatibility}
 
 Senin vibe tipin ne? Profile Whisperer'da kesfet!''';
-    Share.share(text);
+
+    await Share.share(text);
+
+    // Check and award share bonus
+    if (mounted) {
+      final resultId = '${result.vibeType}_${DateTime.now().millisecondsSinceEpoch ~/ 60000}';
+      final shareBonusProvider = context.read<ShareBonusProvider>();
+      final authProvider = context.read<AuthProvider>();
+
+      if (!shareBonusProvider.hasClaimedBonus(resultId)) {
+        final credits = await shareBonusProvider.claimShareBonus(resultId);
+        if (credits > 0) {
+          await authProvider.addCredits(credits);
+          _analytics.logShareBonusClaimed(resultId: resultId, credits: credits);
+
+          // Show bonus dialog
+          if (mounted) {
+            _showShareBonusDialog(context, credits);
+          }
+        }
+      }
+    }
+  }
+
+  void _showShareBonusDialog(BuildContext context, int credits) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: SeductiveColors.velvetPurple,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: SeductiveColors.primaryGradient,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                color: SeductiveColors.lunarWhite,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Bonus Kazandin!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: SeductiveColors.lunarWhite,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '+$credits Analiz hakki',
+              style: TextStyle(
+                fontSize: 16,
+                color: SeductiveColors.neonMagenta,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Paylastigin icin tesekkurler!',
+              style: TextStyle(
+                fontSize: 14,
+                color: SeductiveColors.silverMist,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Tamam',
+              style: TextStyle(color: SeductiveColors.neonMagenta),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _shareResult(BuildContext context, result) {
+    _shareResultWithBonus(context, result);
   }
 }

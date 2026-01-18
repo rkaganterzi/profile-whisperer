@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import '../models/analysis_history.dart';
 import '../providers/history_provider.dart';
 import '../providers/analysis_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/seductive_colors.dart';
 import '../widgets/effects/light_leak.dart';
 import '../animations/page_transitions.dart';
+import '../utils/premium_features.dart';
 import 'result_screen.dart';
+import 'deep_result_screen.dart';
+import 'paywall_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -90,9 +94,9 @@ class HistoryScreen extends StatelessWidget {
               ),
               // Content
               Expanded(
-                child: Consumer<HistoryProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.isLoading) {
+                child: Consumer2<HistoryProvider, AuthProvider>(
+                  builder: (context, historyProvider, authProvider, _) {
+                    if (historyProvider.isLoading) {
                       return const Center(
                         child: CircularProgressIndicator(
                           color: SeductiveColors.neonMagenta,
@@ -100,15 +104,23 @@ class HistoryScreen extends StatelessWidget {
                       );
                     }
 
-                    if (provider.history.isEmpty) {
+                    if (historyProvider.history.isEmpty) {
                       return _buildEmptyState();
                     }
 
+                    final isPremium = authProvider.isPremium;
+                    final visibleHistory = historyProvider.getVisibleHistory(isPremium);
+                    final hiddenCount = historyProvider.getHiddenCount(isPremium);
+
                     return ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: provider.history.length,
+                      itemCount: visibleHistory.length + (hiddenCount > 0 ? 1 : 0),
                       itemBuilder: (context, index) {
-                        final item = provider.history[index];
+                        // Show premium unlock card at the end
+                        if (index == visibleHistory.length && hiddenCount > 0) {
+                          return _buildPremiumUnlockCard(context, hiddenCount);
+                        }
+                        final item = visibleHistory[index];
                         return _buildHistoryCard(context, item);
                       },
                     );
@@ -118,6 +130,103 @@ class HistoryScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumUnlockCard(BuildContext context, int hiddenCount) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            SeductiveColors.neonMagenta.withOpacity(0.15),
+            SeductiveColors.neonPurple.withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: SeductiveColors.neonMagenta.withOpacity(0.4),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: SeductiveColors.primaryGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_rounded,
+                  color: SeductiveColors.lunarWhite,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '+$hiddenCount Gizli Tarama',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: SeductiveColors.lunarWhite,
+                    ),
+                  ),
+                  Text(
+                    'Premium ile tum gecmisi ac',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: SeductiveColors.dustyRose,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  SeductivePageRoute(page: const PaywallScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SeductiveColors.neonMagenta,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.workspace_premium, color: SeductiveColors.lunarWhite, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Premium\'a Yukselt',
+                    style: TextStyle(
+                      color: SeductiveColors.lunarWhite,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -166,8 +275,8 @@ class HistoryScreen extends StatelessWidget {
   }
 
   Widget _buildHistoryCard(BuildContext context, AnalysisHistoryItem item) {
-    final result = item.result;
     final timeAgo = _getTimeAgo(item.analyzedAt);
+    final isDeep = item.isDeepAnalysis;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -175,7 +284,10 @@ class HistoryScreen extends StatelessWidget {
         color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: SeductiveColors.smokyViolet,
+          color: isDeep
+              ? SeductiveColors.neonPurple.withOpacity(0.5)
+              : SeductiveColors.smokyViolet,
+          width: isDeep ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -183,6 +295,11 @@ class HistoryScreen extends StatelessWidget {
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
+          if (isDeep)
+            BoxShadow(
+              color: SeductiveColors.neonPurple.withOpacity(0.2),
+              blurRadius: 10,
+            ),
         ],
       ),
       child: Material(
@@ -199,16 +316,20 @@ class HistoryScreen extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: SeductiveColors.primaryGradient,
+                    gradient: isDeep
+                        ? const LinearGradient(
+                            colors: [SeductiveColors.neonPurple, SeductiveColors.neonMagenta],
+                          )
+                        : SeductiveColors.primaryGradient,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: SeductiveColors.neonGlow(
-                      color: SeductiveColors.neonMagenta,
+                      color: isDeep ? SeductiveColors.neonPurple : SeductiveColors.neonMagenta,
                       blur: 10,
                     ),
                   ),
                   child: Center(
                     child: Text(
-                      result.vibeEmoji,
+                      item.displayEmoji,
                       style: const TextStyle(fontSize: 28),
                     ),
                   ),
@@ -219,13 +340,40 @@ class HistoryScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        result.vibeType,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: SeductiveColors.lunarWhite,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              item.displayTitle,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: SeductiveColors.lunarWhite,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isDeep) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [SeductiveColors.neonPurple, SeductiveColors.neonMagenta],
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'DERİN',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: SeductiveColors.lunarWhite,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -256,21 +404,23 @@ class HistoryScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      // Energy badge
+                      // Badge - Energy for normal, Engagement for deep
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: SeductiveColors.neonMagenta.withOpacity(0.15),
+                          color: (isDeep ? SeductiveColors.neonPurple : SeductiveColors.neonMagenta).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                            color: (isDeep ? SeductiveColors.neonPurple : SeductiveColors.neonMagenta).withOpacity(0.3),
                           ),
                         ),
                         child: Text(
-                          result.energy,
-                          style: const TextStyle(
+                          isDeep
+                              ? item.deepResult?.engagementQuality ?? 'Analiz'
+                              : item.result?.energy ?? 'Analiz',
+                          style: TextStyle(
                             fontSize: 11,
-                            color: SeductiveColors.neonMagenta,
+                            color: isDeep ? SeductiveColors.neonPurple : SeductiveColors.neonMagenta,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -299,6 +449,8 @@ class HistoryScreen extends StatelessWidget {
         return Icons.photo_library_rounded;
       case 'instagram':
         return Icons.link_rounded;
+      case 'instagram_deep':
+        return Icons.psychology_rounded;
       default:
         return Icons.image_rounded;
     }
@@ -323,11 +475,21 @@ class HistoryScreen extends StatelessWidget {
   }
 
   void _viewResult(BuildContext context, AnalysisHistoryItem item) {
-    context.read<AnalysisProvider>().setResult(item.result);
-    Navigator.push(
-      context,
-      SeductivePageRoute(page: const ResultScreen()),
-    );
+    final analysisProvider = context.read<AnalysisProvider>();
+
+    if (item.isDeepAnalysis && item.deepResult != null) {
+      analysisProvider.setDeepResult(item.deepResult!, username: item.instagramUsername);
+      Navigator.push(
+        context,
+        SeductivePageRoute(page: const DeepResultScreen(fromHistory: true)),
+      );
+    } else if (item.result != null) {
+      analysisProvider.setResult(item.result!);
+      Navigator.push(
+        context,
+        SeductivePageRoute(page: const ResultScreen()),
+      );
+    }
   }
 
   void _showClearConfirmation(BuildContext context) {

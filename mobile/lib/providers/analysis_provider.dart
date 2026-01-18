@@ -194,8 +194,9 @@ class AnalysisProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setDeepResult(DeepAnalysisResult result) {
+  void setDeepResult(DeepAnalysisResult result, {String? username}) {
     _deepResult = result;
+    _instagramUsername = username;
     _state = AnalysisState.deepSuccess;
     notifyListeners();
   }

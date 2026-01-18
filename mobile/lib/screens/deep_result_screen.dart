@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:confetti/confetti.dart';
 import '../providers/analysis_provider.dart';
+import '../providers/history_provider.dart';
+import '../providers/share_bonus_provider.dart';
 import '../services/sound_service.dart';
 import '../services/analytics_service.dart';
 import '../services/ad_service.dart';
@@ -15,7 +17,9 @@ import '../widgets/core/neon_text.dart';
 import '../widgets/effects/light_leak.dart';
 
 class DeepResultScreen extends StatefulWidget {
-  const DeepResultScreen({super.key});
+  final bool fromHistory;
+
+  const DeepResultScreen({super.key, this.fromHistory = false});
 
   @override
   State<DeepResultScreen> createState() => _DeepResultScreenState();
@@ -48,6 +52,13 @@ class _DeepResultScreenState extends State<DeepResultScreen>
     // Log screen view
     _analytics.logScreenView('deep_result_screen');
 
+    // Add to history after frame is built (only if not viewing from history)
+    if (!widget.fromHistory) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _addToHistory();
+      });
+    }
+
     // Start reveal animation, confetti and play success sound after a short delay
     Future.delayed(const Duration(milliseconds: 300), () {
       _revealController.forward();
@@ -67,6 +78,21 @@ class _DeepResultScreenState extends State<DeepResultScreen>
         }
       }
     });
+  }
+
+  void _addToHistory() {
+    final analysisProvider = context.read<AnalysisProvider>();
+    final historyProvider = context.read<HistoryProvider>();
+
+    final result = analysisProvider.deepResult;
+    final username = analysisProvider.instagramUsername;
+
+    if (result != null) {
+      historyProvider.addDeepToHistory(
+        result: result,
+        instagramUsername: username,
+      );
+    }
   }
 
   @override
@@ -705,7 +731,7 @@ class _DeepResultScreenState extends State<DeepResultScreen>
     );
   }
 
-  void _shareResult(BuildContext context, result, String? username) {
+  Future<void> _shareResult(BuildContext context, result, String? username) async {
     // Log analytics
     _analytics.logShareResult(method: 'text');
 
@@ -720,6 +746,92 @@ Uyari Isaretleri:
 ${result.warningSigns.map((s) => '- $s').join('\n')}
 
 Derin Profil Analizi - Profile Whisperer''';
-    Share.share(text);
+
+    await Share.share(text);
+
+    // Check and award share bonus
+    if (mounted) {
+      final resultId = 'deep_${result.profileArchetype}_${DateTime.now().millisecondsSinceEpoch ~/ 60000}';
+      final shareBonusProvider = context.read<ShareBonusProvider>();
+      final authProvider = context.read<AuthProvider>();
+
+      if (!shareBonusProvider.hasClaimedBonus(resultId)) {
+        final credits = await shareBonusProvider.claimShareBonus(resultId);
+        if (credits > 0) {
+          await authProvider.addCredits(credits);
+          _analytics.logShareBonusClaimed(resultId: resultId, credits: credits);
+
+          // Show bonus dialog
+          if (mounted) {
+            _showShareBonusDialog(context, credits);
+          }
+        }
+      }
+    }
+  }
+
+  void _showShareBonusDialog(BuildContext context, int credits) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: SeductiveColors.velvetPurple,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: SeductiveColors.primaryGradient,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                color: SeductiveColors.lunarWhite,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Bonus Kazandin!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: SeductiveColors.lunarWhite,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '+$credits Analiz hakki',
+              style: TextStyle(
+                fontSize: 16,
+                color: SeductiveColors.neonMagenta,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Paylastigin icin tesekkurler!',
+              style: TextStyle(
+                fontSize: 14,
+                color: SeductiveColors.silverMist,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Tamam',
+              style: TextStyle(color: SeductiveColors.neonMagenta),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -10,6 +10,8 @@ import 'providers/history_provider.dart';
 import 'providers/achievement_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/streak_provider.dart';
+import 'providers/share_bonus_provider.dart';
 import 'services/sound_service.dart';
 import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
@@ -63,6 +65,8 @@ class ProfileWhispererApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HistoryProvider()),
         ChangeNotifierProvider(create: (_) => AchievementProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => StreakProvider()),
+        ChangeNotifierProvider(create: (_) => ShareBonusProvider()),
       ],
       child: Builder(
         builder: (context) {

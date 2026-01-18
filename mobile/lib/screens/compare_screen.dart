@@ -320,6 +320,8 @@ class _CompareScreenState extends State<CompareScreen> {
                 itemCount: history.length,
                 itemBuilder: (context, index) {
                   final item = history[index];
+                  final result = item.result;
+                  if (result == null) return const SizedBox.shrink();
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
@@ -336,13 +338,13 @@ class _CompareScreenState extends State<CompareScreen> {
                         ),
                         child: Center(
                           child: Text(
-                            item.result.vibeEmoji,
+                            result.vibeEmoji,
                             style: const TextStyle(fontSize: 24),
                           ),
                         ),
                       ),
                       title: Text(
-                        item.result.vibeType,
+                        result.vibeType,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: SeductiveColors.lunarWhite,
@@ -351,7 +353,7 @@ class _CompareScreenState extends State<CompareScreen> {
                       subtitle: Text(
                         item.instagramUsername != null
                             ? '@${item.instagramUsername}'
-                            : item.result.energy,
+                            : result.energy,
                         style: const TextStyle(
                           color: SeductiveColors.silverMist,
                         ),
@@ -361,7 +363,7 @@ class _CompareScreenState extends State<CompareScreen> {
                         color: SeductiveColors.dustyRose,
                       ),
                       onTap: () {
-                        onSelect(item.result);
+                        onSelect(result);
                         Navigator.pop(context);
                       },
                     ),
