@@ -1,311 +1,378 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/analysis_result.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
 
-class VibeCard extends StatelessWidget {
+class VibeCard extends StatefulWidget {
   final AnalysisResult result;
 
   const VibeCard({super.key, required this.result});
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  State<VibeCard> createState() => _VibeCardState();
+}
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+class _VibeCardState extends State<VibeCard> with SingleTickerProviderStateMixin {
+  late AnimationController _glowController;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+
+    _glowAnimation = Tween<double>(begin: 0.3, end: 0.5).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glowAnimation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            color: SeductiveColors.velvetPurple,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: SeductiveColors.neonMagenta.withOpacity(_glowAnimation.value),
+                blurRadius: 25,
+                spreadRadius: 2,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Gradient header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(32),
-            decoration: const BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Emoji
-                Text(
-                  result.vibeEmoji,
-                  style: const TextStyle(fontSize: 56),
-                ),
-                const SizedBox(height: 16),
-                // Vibe Type
-                Text(
-                  result.vibeType,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                // Energy badge
+                // Gradient header
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(32),
+                  decoration: const BoxDecoration(
+                    gradient: SeductiveColors.primaryGradient,
                   ),
-                  child: Text(
-                    result.energy,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Content area
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Description
-                Text(
-                  result.description,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                    height: 1.6,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                // Roast section
-                if (result.roast.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [
-                                Colors.orange.shade900.withOpacity(0.3),
-                                Colors.pink.shade900.withOpacity(0.3),
-                              ]
-                            : [
-                                Colors.orange.shade50,
-                                Colors.pink.shade50,
-                              ],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppTheme.primaryPink.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          '🔥 ROAST 🔥',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryPink,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          result.roast,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontStyle: FontStyle.italic,
-                            color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                // Red & Green Flags
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Red Flags
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Text('🚩', style: TextStyle(fontSize: 16)),
-                              SizedBox(width: 4),
-                              Text(
-                                'Red Flags',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ...result.redFlags.map((flag) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              '• $flag',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? Colors.red.shade300 : Colors.red.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                          )),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Green Flags
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Text('💚', style: TextStyle(fontSize: 16)),
-                              SizedBox(width: 4),
-                              Text(
-                                'Green Flags',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ...result.greenFlags.map((flag) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              '• $flag',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? Colors.green.shade300 : Colors.green.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                          )),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Traits
-                Center(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: result.traits.map((trait) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Column(
+                    children: [
+                      // Emoji
+                      Container(
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryPink.withOpacity(0.1),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppTheme.primaryPink.withOpacity(0.3),
+                        ),
+                        child: Center(
+                          child: Text(
+                            widget.result.vibeEmoji,
+                            style: const TextStyle(fontSize: 48),
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Vibe Type
+                      Text(
+                        widget.result.vibeType,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: SeductiveColors.lunarWhite,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      // Energy badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          trait,
+                          widget.result.energy,
                           style: const TextStyle(
-                            color: AppTheme.primaryPink,
-                            fontSize: 13,
+                            color: SeductiveColors.lunarWhite,
                             fontWeight: FontWeight.w500,
+                            fontSize: 14,
                           ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Compatibility
-                if (result.compatibility.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.purple.shade900.withOpacity(0.3)
-                          : Colors.purple.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: isDark
-                          ? Border.all(color: Colors.purple.shade700.withOpacity(0.3))
-                          : null,
-                    ),
-                    child: Row(
-                      children: [
-                        const Text('💕', style: TextStyle(fontSize: 20)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            result.compatibility,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? Colors.purple.shade200 : Colors.purple.shade700,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                // Branding
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) =>
-                            AppTheme.primaryGradient.createShader(bounds),
-                        child: const Icon(
-                          Icons.local_fire_department,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Profile Whisperer',
-                        style: TextStyle(
-                          color: AppTheme.textLight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
+                // Content area with glass effect
+                ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: SeductiveColors.velvetPurple.withOpacity(0.9),
+                        border: Border(
+                          top: BorderSide(
+                            color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Description
+                          Text(
+                            widget.result.description,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: SeductiveColors.silverMist,
+                              height: 1.6,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          // Roast section
+                          if (widget.result.roast.isNotEmpty) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    SeductiveColors.neonCoral.withOpacity(0.2),
+                                    SeductiveColors.neonMagenta.withOpacity(0.2),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: SeductiveColors.buttonGradient,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'ROAST',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: SeductiveColors.lunarWhite,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    widget.result.roast,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontStyle: FontStyle.italic,
+                                      color: SeductiveColors.lunarWhite,
+                                      height: 1.5,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                          // Red & Green Flags (Tehlike & Firsat)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Tehlike (Red Flags)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text('⚠️', style: TextStyle(fontSize: 16)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Tehlike',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: SeductiveColors.dangerRed,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ...widget.result.redFlags.map((flag) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        '• $flag',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: SeductiveColors.dangerRed.withOpacity(0.8),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Firsat (Green Flags)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text('💎', style: TextStyle(fontSize: 16)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Firsat',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: SeductiveColors.successGreen,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ...widget.result.greenFlags.map((flag) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        '• $flag',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: SeductiveColors.successGreen.withOpacity(0.8),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          // Traits
+                          Center(
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.center,
+                              children: widget.result.traits.map((trait) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: SeductiveColors.neonMagenta.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: SeductiveColors.neonMagenta.withOpacity(0.4),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    trait,
+                                    style: const TextStyle(
+                                      color: SeductiveColors.neonMagenta,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Compatibility
+                          if (widget.result.compatibility.isNotEmpty) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: SeductiveColors.neonPurple.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: SeductiveColors.neonPurple.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Text('💕', style: TextStyle(fontSize: 20)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      widget.result.compatibility,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: SeductiveColors.neonPurple.withOpacity(0.9),
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                          // Branding
+                          Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (bounds) =>
+                                      SeductiveColors.primaryGradient.createShader(bounds),
+                                  child: const Icon(
+                                    Icons.psychology_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Profile Whisperer',
+                                  style: TextStyle(
+                                    color: SeductiveColors.dustyRose,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

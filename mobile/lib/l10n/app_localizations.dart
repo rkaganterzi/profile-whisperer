@@ -107,13 +107,13 @@ abstract class AppLocalizations {
   /// No description provided for @tagline.
   ///
   /// In en, this message translates to:
-  /// **'Stalk. Understand. Slide.'**
+  /// **'Discover. Decode. Conquer.'**
   String get tagline;
 
   /// No description provided for @uploadPhoto.
   ///
   /// In en, this message translates to:
-  /// **'Upload Photo'**
+  /// **'Upload Image'**
   String get uploadPhoto;
 
   /// No description provided for @takePhoto.
@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @analyzing.
   ///
   /// In en, this message translates to:
-  /// **'Analyzing vibe...'**
+  /// **'Infiltrating target...'**
   String get analyzing;
 
   /// No description provided for @vibeType.
@@ -143,8 +143,14 @@ abstract class AppLocalizations {
   /// No description provided for @conversationStarters.
   ///
   /// In en, this message translates to:
-  /// **'Conversation Starters'**
+  /// **'Your Arsenal'**
   String get conversationStarters;
+
+  /// No description provided for @conversationStartersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'pick, copy, fire'**
+  String get conversationStartersSubtitle;
 
   /// No description provided for @shareResult.
   ///
@@ -155,25 +161,25 @@ abstract class AppLocalizations {
   /// No description provided for @tryAnother.
   ///
   /// In en, this message translates to:
-  /// **'Try Another'**
+  /// **'New Target'**
   String get tryAnother;
 
   /// No description provided for @dailyLimitReached.
   ///
   /// In en, this message translates to:
-  /// **'Daily limit reached! Come back tomorrow.'**
+  /// **'Energy depleted! Upgrade to VIP.'**
   String get dailyLimitReached;
 
   /// No description provided for @usesRemaining.
   ///
   /// In en, this message translates to:
-  /// **'{count} uses remaining today'**
+  /// **'{count} power remaining today'**
   String usesRemaining(int count);
 
   /// No description provided for @onboardingTitle1.
   ///
   /// In en, this message translates to:
-  /// **'Analyze Any Profile'**
+  /// **'Scan Any Profile'**
   String get onboardingTitle1;
 
   /// No description provided for @onboardingDesc1.
@@ -185,7 +191,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTitle2.
   ///
   /// In en, this message translates to:
-  /// **'Get Their Vibe'**
+  /// **'Decode Their Vibe'**
   String get onboardingTitle2;
 
   /// No description provided for @onboardingDesc2.
@@ -197,13 +203,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTitle3.
   ///
   /// In en, this message translates to:
-  /// **'Slide Into DMs'**
+  /// **'Make Your Move'**
   String get onboardingTitle3;
 
   /// No description provided for @onboardingDesc3.
   ///
   /// In en, this message translates to:
-  /// **'Get personalized conversation starters'**
+  /// **'Get personalized weapons'**
   String get onboardingDesc3;
 
   /// No description provided for @getStarted.
@@ -223,6 +229,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip'**
   String get skip;
+
+  /// No description provided for @scan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scan;
+
+  /// No description provided for @power.
+  ///
+  /// In en, this message translates to:
+  /// **'Power'**
+  String get power;
+
+  /// No description provided for @vip.
+  ///
+  /// In en, this message translates to:
+  /// **'VIP'**
+  String get vip;
+
+  /// No description provided for @upgradeToVip.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to VIP'**
+  String get upgradeToVip;
+
+  /// No description provided for @buyPower.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Power'**
+  String get buyPower;
+
+  /// No description provided for @powerDepleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy depleted.'**
+  String get powerDepleted;
+
+  /// No description provided for @danger.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger'**
+  String get danger;
+
+  /// No description provided for @opportunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Opportunity'**
+  String get opportunity;
+
+  /// No description provided for @roast.
+  ///
+  /// In en, this message translates to:
+  /// **'ROAST'**
+  String get roast;
+
+  /// No description provided for @weapons.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Arsenal'**
+  String get weapons;
+
+  /// No description provided for @targetLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Infiltrating target...'**
+  String get targetLocked;
+
+  /// No description provided for @analyzingVibe.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing vibe...'**
+  String get analyzingVibe;
+
+  /// No description provided for @searchingDanger.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for dangers...'**
+  String get searchingDanger;
+
+  /// No description provided for @countingOpportunities.
+  ///
+  /// In en, this message translates to:
+  /// **'Counting opportunities...'**
+  String get countingOpportunities;
+
+  /// No description provided for @preparingWeapons.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing weapons...'**
+  String get preparingWeapons;
+
+  /// No description provided for @preparingRoast.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing roast...'**
+  String get preparingRoast;
+
+  /// No description provided for @finalTouches.
+  ///
+  /// In en, this message translates to:
+  /// **'Final touches...'**
+  String get finalTouches;
+
+  /// No description provided for @copyToSend.
+  ///
+  /// In en, this message translates to:
+  /// **'tap to copy'**
+  String get copyToSend;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied! Now go text them'**
+  String get copied;
+
+  /// No description provided for @swipeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'swipe'**
+  String get swipeHint;
 }
 
 class _AppLocalizationsDelegate

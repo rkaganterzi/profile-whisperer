@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
+import '../widgets/core/glow_button.dart';
+import '../widgets/core/neon_text.dart';
+import '../widgets/effects/light_leak.dart';
+import '../animations/page_transitions.dart';
 import 'auth_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -23,39 +27,39 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   final List<OnboardingPage> _pages = [
     OnboardingPage(
-      emoji: '🔥',
+      emoji: '🔮',
       title: 'Profile Whisperer',
-      subtitle: 'Stalk. Anla. Yürü.',
-      description: 'Instagram profillerini AI ile analiz et, vibe\'ını keşfet!',
-      color: AppTheme.primaryPink,
+      subtitle: 'Kesfet. Coz. Fethet.',
+      description: 'Instagram profillerini AI ile analiz et, gizemlerini coz!',
+      color: SeductiveColors.neonMagenta,
     ),
     OnboardingPage(
-      emoji: '📸',
+      emoji: '📡',
       title: 'Screenshot veya Link',
-      subtitle: 'İki yol, bir sonuç',
-      description: 'Profil linkini yapıştır veya screenshot yükle. Gerisini bize bırak!',
-      color: AppTheme.primaryOrange,
+      subtitle: 'Iki yol, bir hedef',
+      description: 'Profil linkini yapistir veya screenshot yukle. Gerisini bize birak!',
+      color: SeductiveColors.neonPurple,
     ),
     OnboardingPage(
-      emoji: '✨',
-      title: 'Vibe Analizi',
-      subtitle: 'AI destekli analiz',
-      description: 'Kişiliği, red/green flag\'leri ve uyumluluk analizini gör.',
-      color: AppTheme.accentPurple,
+      emoji: '🧠',
+      title: 'Derin Analiz',
+      subtitle: 'AI destekli tarama',
+      description: 'Kisilik analizi, tehlike isaretleri ve firsatlari kesfet.',
+      color: SeductiveColors.neonCyan,
     ),
     OnboardingPage(
       emoji: '💬',
-      title: 'Açılış Replikleri',
-      subtitle: 'Hazır mesajlar',
-      description: 'AI\'ın hazırladığı kişiye özel açılış repliklerini kopyala ve gönder!',
-      color: const Color(0xFF26A69A),
+      title: 'Silahlarin',
+      subtitle: 'Hazir mesajlar',
+      description: 'AI\'in hazirladigi kisiye ozel acilis repliklerini kopyala ve at!',
+      color: SeductiveColors.neonCoral,
     ),
     OnboardingPage(
       emoji: '🚀',
-      title: 'Hazır mısın?',
-      subtitle: 'Hadi başlayalım!',
-      description: 'İlk analizini yap ve vibe\'ını keşfet!',
-      color: AppTheme.primaryRed,
+      title: 'Hazir misin?',
+      subtitle: 'Hadi baslayalim!',
+      description: 'Ilk taramani yap ve sirlari coz!',
+      color: SeductiveColors.neonMagenta,
     ),
   ];
 
@@ -72,12 +76,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
 
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
     );
 
     _fadeController.forward();
@@ -97,154 +101,130 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const AuthScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
+        SeductivePageRoute(page: const AuthScreen()),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
+      backgroundColor: SeductiveColors.voidBlack,
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: Stack(
-          children: [
-            // Animated background
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 400),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    _pages[_currentPage].color.withOpacity(isDark ? 0.2 : 0.1),
-                    isDark ? AppTheme.backgroundDark : AppTheme.backgroundLight,
-                    isDark ? AppTheme.backgroundDark : AppTheme.backgroundLight,
+        child: AnimatedLightLeak(
+          intensity: 0.2,
+          child: Stack(
+            children: [
+              // Background gradient
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _pages[_currentPage].color.withOpacity(0.15),
+                      SeductiveColors.voidBlack,
+                      SeductiveColors.voidBlack,
+                    ],
+                  ),
+                ),
+              ),
+              // Content
+              SafeArea(
+                child: Column(
+                  children: [
+                    // Skip button
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (_currentPage < _pages.length - 1)
+                            TextButton(
+                              onPressed: _completeOnboarding,
+                              child: const Text(
+                                'Atla',
+                                style: TextStyle(
+                                  color: SeductiveColors.dustyRose,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Page view
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _pages.length,
+                        onPageChanged: (index) {
+                          setState(() => _currentPage = index);
+                          HapticFeedback.selectionClick();
+                        },
+                        itemBuilder: (context, index) {
+                          return _buildPage(_pages[index], index);
+                        },
+                      ),
+                    ),
+                    // Bottom section
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          // Page indicators
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              _pages.length,
+                              (index) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: _currentPage == index ? 28 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  color: _currentPage == index
+                                      ? _pages[_currentPage].color
+                                      : SeductiveColors.smokyViolet,
+                                  boxShadow: _currentPage == index
+                                      ? [
+                                          BoxShadow(
+                                            color: _pages[_currentPage]
+                                                .color
+                                                .withOpacity(0.5),
+                                            blurRadius: 8,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          // Next/Start button
+                          SizedBox(
+                            width: double.infinity,
+                            child: _currentPage == _pages.length - 1
+                                ? _buildStartButton()
+                                : _buildNextButton(),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            // Decorative circles
-            Positioned(
-              top: -50,
-              right: -50,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 400),
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _pages[_currentPage].color.withOpacity(0.1),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -100,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 400),
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _pages[_currentPage].color.withOpacity(0.05),
-                ),
-              ),
-            ),
-            // Content
-            SafeArea(
-              child: Column(
-                children: [
-                  // Skip button
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (_currentPage < _pages.length - 1)
-                          TextButton(
-                            onPressed: _completeOnboarding,
-                            child: Text(
-                              'Atla',
-                              style: TextStyle(
-                                color: isDark
-                                    ? AppTheme.textGrayDark
-                                    : AppTheme.textGray,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Page view
-                  Expanded(
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: _pages.length,
-                      onPageChanged: (index) {
-                        setState(() => _currentPage = index);
-                        HapticFeedback.selectionClick();
-                      },
-                      itemBuilder: (context, index) {
-                        return _buildPage(_pages[index], isDark, index);
-                      },
-                    ),
-                  ),
-                  // Bottom section
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        // Page indicators
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            _pages.length,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: _currentPage == index ? 28 : 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                color: _currentPage == index
-                                    ? _pages[_currentPage].color
-                                    : (isDark ? Colors.grey[700] : Colors.grey[300]),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        // Next/Start button
-                        SizedBox(
-                          width: double.infinity,
-                          child: _currentPage == _pages.length - 1
-                              ? _buildStartButton()
-                              : _buildNextButton(isDark),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPage(OnboardingPage page, bool isDark, int index) {
+  Widget _buildPage(OnboardingPage page, int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
@@ -267,20 +247,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    page.color.withOpacity(isDark ? 0.3 : 0.2),
-                    page.color.withOpacity(isDark ? 0.15 : 0.05),
+                    page.color.withOpacity(0.3),
+                    page.color.withOpacity(0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(35),
-                boxShadow: [
-                  BoxShadow(
-                    color: page.color.withOpacity(0.3),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
+                boxShadow: SeductiveColors.neonGlow(
+                  color: page.color,
+                  blur: 25,
+                ),
                 border: Border.all(
-                  color: page.color.withOpacity(0.3),
+                  color: page.color.withOpacity(0.5),
                   width: 2,
                 ),
               ),
@@ -294,14 +271,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 48),
           // Title
-          Text(
+          NeonText(
             page.title,
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-            ),
-            textAlign: TextAlign.center,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            glowColor: page.color,
+            glowIntensity: 0.5,
           ),
           const SizedBox(height: 12),
           // Subtitle badge
@@ -327,9 +302,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           // Description
           Text(
             page.description,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+              color: SeductiveColors.silverMist,
               height: 1.6,
             ),
             textAlign: TextAlign.center,
@@ -339,91 +314,38 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildNextButton(bool isDark) {
-    return OutlinedButton(
+  Widget _buildNextButton() {
+    return GlowButton(
+      text: 'Devam',
+      icon: Icons.arrow_forward_rounded,
+      glowColor: _pages[_currentPage].color,
+      gradient: LinearGradient(
+        colors: [
+          _pages[_currentPage].color,
+          _pages[_currentPage].color.withOpacity(0.8),
+        ],
+      ),
+      animate: false,
       onPressed: () {
         HapticFeedback.lightImpact();
         _pageController.nextPage(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutCubic,
         );
       },
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        side: BorderSide(
-          color: _pages[_currentPage].color,
-          width: 2,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Devam',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: _pages[_currentPage].color,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.arrow_forward_rounded,
-            color: _pages[_currentPage].color,
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildStartButton() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryPink.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.mediumImpact();
-            _completeOnboarding();
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 18),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Başla',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Icon(
-                  Icons.rocket_launch_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return GlowButton(
+      text: 'Basla',
+      icon: Icons.rocket_launch_rounded,
+      gradient: SeductiveColors.primaryGradient,
+      animate: true,
+      onPressed: () {
+        HapticFeedback.mediumImpact();
+        _completeOnboarding();
+      },
     );
   }
 }

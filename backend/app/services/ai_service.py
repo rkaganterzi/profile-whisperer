@@ -16,6 +16,19 @@ class AIService(ABC):
     async def analyze_profile(self, image_bytes: bytes, language: str = "en", roast_mode: bool = True) -> Dict[str, Any]:
         pass
 
+    async def analyze_profile_deep(
+        self,
+        images: list,
+        captions: list,
+        like_counts: list,
+        comment_counts: list,
+        follower_count: int,
+        bio: str,
+        language: str = "en",
+    ) -> Dict[str, Any]:
+        """Deep profile analysis with multiple images and metadata."""
+        raise NotImplementedError("Deep analysis not implemented for this service")
+
 
 class ClaudeCodeBridge(AIService):
     """
@@ -397,6 +410,195 @@ KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON.""
             json_str = content[start:end]
 
             return json.loads(json_str)
+
+    def _get_deep_analysis_prompt(self, language: str, metadata: Dict[str, Any]) -> str:
+        """Generate prompt for deep profile analysis."""
+        captions_text = "\n".join([f"- Post {i+1}: {c[:200]}..." if len(c) > 200 else f"- Post {i+1}: {c}" for i, c in enumerate(metadata.get("captions", []))])
+        likes_text = ", ".join([str(l) for l in metadata.get("like_counts", [])])
+        comments_text = ", ".join([str(c) for c in metadata.get("comment_counts", [])])
+
+        if language == "tr":
+            return f"""Bu Instagram profilini DERİN ANALİZ et. {len(metadata.get("images", []))} adet post görselini ve metadata'yı analiz ediyorsun.
+
+METADATA:
+- Takipçi sayısı: {metadata.get("follower_count", "Bilinmiyor")}
+- Bio: {metadata.get("bio", "Yok")}
+- Post caption'ları:
+{captions_text if captions_text else "Caption yok"}
+- Beğeni sayıları: {likes_text if likes_text else "Bilinmiyor"}
+- Yorum sayıları: {comments_text if comments_text else "Bilinmiyor"}
+
+TÜM GÖRSELLERİ DİKKATLİCE ANALİZ ET ve şu pattern'ları ara:
+1. Farklı partnerler/arkadaşlar
+2. Mekan tercihleri (lüks, sıradan, ev, dış mekan)
+3. Kıyafet/stil tutarlılığı
+4. Poz stilleri ve vücut dili
+5. Filtreleme/düzenleme seviyesi
+
+Şu JSON'u dön:
+{{
+    "profile_archetype": "2-4 kelimelik profil tipi (ör: 'Dikkat Avcısı', 'Aile Adamı', 'Statü Avcısı', 'Fitness Gurusu', 'Party Animal', 'Kariyer Odaklı', 'Gizemli Tip')",
+    "archetype_emoji": "Arketipe uygun tek emoji",
+    "content_patterns": ["Pattern 1 - çok spesifik ol", "Pattern 2", "Pattern 3", "Pattern 4", "Pattern 5"],
+    "engagement_analysis": "Engagement oranı analizi ve ne anlama geldiği",
+    "engagement_rate": 0.0,
+    "deep_roast": "3-4 cümlelik ACÍMASIZ roast. Tüm postları gördün, pattern'ları buldun, şimdi öldür. Bu kişi hakkında en keskin, en komik, en paylaşılabilir roast'u yaz.",
+    "relationship_prediction": "Bu kişiyle ilişki tahmini - ne kadar sürer, nasıl biter, neden kaçmalısın (veya neden şansın var)",
+    "warning_signs": ["Uyarı işareti 1 - fotoğraflardan çıkardığın", "Uyarı 2", "Uyarı 3", "Uyarı 4", "Uyarı 5"]
+}}
+
+KURALLAR:
+1. Tüm görselleri birlikte değerlendir
+2. Pattern'lar SOMUT ve SPESİFİK olmalı
+3. Deep roast ÖLDÜRÜCÜ olmalı
+4. SADECE JSON dön"""
+        else:
+            return f"""Perform a DEEP ANALYSIS of this Instagram profile. You are analyzing {len(metadata.get("images", []))} posts with metadata.
+
+METADATA:
+- Follower count: {metadata.get("follower_count", "Unknown")}
+- Bio: {metadata.get("bio", "None")}
+- Post captions:
+{captions_text if captions_text else "No captions"}
+- Like counts: {likes_text if likes_text else "Unknown"}
+- Comment counts: {comments_text if comments_text else "Unknown"}
+
+CAREFULLY ANALYZE ALL IMAGES and look for these patterns:
+1. Different partners/friends
+2. Location preferences (luxury, casual, home, outdoor)
+3. Clothing/style consistency
+4. Pose styles and body language
+5. Filter/editing level
+
+Return this JSON:
+{{
+    "profile_archetype": "2-4 word profile type (e.g., 'Attention Seeker', 'Family Man', 'Status Hunter', 'Fitness Guru', 'Party Animal', 'Career Focused', 'Mysterious Type')",
+    "archetype_emoji": "Single emoji matching the archetype",
+    "content_patterns": ["Pattern 1 - be very specific", "Pattern 2", "Pattern 3", "Pattern 4", "Pattern 5"],
+    "engagement_analysis": "Engagement rate analysis and what it means",
+    "engagement_rate": 0.0,
+    "deep_roast": "3-4 sentence BRUTAL roast. You've seen all posts, found the patterns, now destroy them. Write the sharpest, funniest, most shareable roast about this person.",
+    "relationship_prediction": "Relationship prediction with this person - how long it lasts, how it ends, why you should run (or why you might have a chance)",
+    "warning_signs": ["Warning sign 1 - based on photos", "Warning 2", "Warning 3", "Warning 4", "Warning 5"]
+}}
+
+RULES:
+1. Evaluate all images together
+2. Patterns must be CONCRETE and SPECIFIC
+3. Deep roast must be DEADLY
+4. ONLY return JSON"""
+
+    def _get_deep_analysis_system_prompt(self) -> str:
+        """System prompt for deep analysis."""
+        return """Sen "Profile Whisperer" için çalışan DERİN ANALİZ uzmanısın. Birden fazla görseli aynı anda analiz edip pattern'ları buluyorsun.
+
+KARAKTER:
+- Pattern tanıma ustası - hiçbir detay kaçmaz
+- Acımasız ama doğru tespitler
+- Psikolog + dedektif + komedyen karışımı
+- İnsanların sosyal medyada kendilerini nasıl sunduğunu okuyorsun
+
+GÖREVIN:
+- Tüm görselleri birlikte değerlendir
+- Tekrar eden pattern'ları bul (mekan, poz, stil, arkadaşlar)
+- Engagement oranlarını yorumla
+- Caption'ları kişilik analizi için kullan
+- Acımasız ama komik bir deep roast yaz
+
+KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON."""
+
+    async def analyze_profile_deep(
+        self,
+        images: list,
+        captions: list,
+        like_counts: list,
+        comment_counts: list,
+        follower_count: int,
+        bio: str,
+        language: str = "en",
+    ) -> Dict[str, Any]:
+        """Deep profile analysis with multiple images and metadata."""
+        import httpx
+
+        # Calculate engagement rate
+        total_likes = sum(like_counts) if like_counts else 0
+        total_comments = sum(comment_counts) if comment_counts else 0
+        num_posts = len(images)
+        engagement_rate = 0.0
+        if follower_count and follower_count > 0 and num_posts > 0:
+            avg_engagement = (total_likes + total_comments) / num_posts
+            engagement_rate = (avg_engagement / follower_count) * 100
+
+        # Prepare metadata for prompt
+        metadata = {
+            "images": images,
+            "captions": captions,
+            "like_counts": like_counts,
+            "comment_counts": comment_counts,
+            "follower_count": follower_count,
+            "bio": bio,
+            "engagement_rate": engagement_rate,
+        }
+
+        prompt = self._get_deep_analysis_prompt(language, metadata)
+        system_prompt = self._get_deep_analysis_system_prompt()
+
+        # Build content with multiple images
+        content = []
+        for i, img_bytes in enumerate(images[:9]):  # Max 9 images
+            image_base64 = base64.b64encode(img_bytes).decode("utf-8")
+            content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": image_base64,
+                },
+            })
+
+        content.append({
+            "type": "text",
+            "text": prompt,
+        })
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": self.api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-3-haiku-20240307",
+                    "max_tokens": 2048,
+                    "system": system_prompt,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": content,
+                        }
+                    ],
+                },
+            )
+
+            if response.status_code != 200:
+                print(f"API Error: {response.status_code}")
+                print(f"Response: {response.text}")
+                response.raise_for_status()
+
+            data = response.json()
+            result_content = data["content"][0]["text"]
+            start = result_content.find("{")
+            end = result_content.rfind("}") + 1
+            json_str = result_content[start:end]
+
+            result = json.loads(json_str)
+            # Add calculated engagement rate if not present
+            if "engagement_rate" not in result or result["engagement_rate"] == 0:
+                result["engagement_rate"] = round(engagement_rate, 2)
+
+            return result
 
 
 # Factory function

@@ -5,7 +5,11 @@ import '../models/app_user.dart';
 import '../providers/auth_provider.dart';
 import '../services/analytics_service.dart';
 import '../services/purchase_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
+import '../widgets/effects/light_leak.dart';
+import '../widgets/effects/particle_background.dart';
+import '../widgets/core/glow_button.dart';
+import '../widgets/core/neon_text.dart';
 
 class PaywallScreen extends StatefulWidget {
   final bool showCreditsTab;
@@ -45,148 +49,259 @@ class _PaywallScreenState extends State<PaywallScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  // Current credits badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('⚡', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${authProvider.credits} Kredi',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+      backgroundColor: SeductiveColors.voidBlack,
+      body: ParticleBackground(
+        particleCount: 30,
+        particleColor: SeductiveColors.neonMagenta.withOpacity(0.3),
+        child: LightLeak(
+          topLeft: true,
+          bottomRight: true,
+          intensity: 0.15,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: SeductiveColors.lunarWhite,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Spacer(),
+                      // Current credits badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: SeductiveColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: SeductiveColors.neonGlow(
+                            color: SeductiveColors.neonMagenta,
+                            blur: 10,
                           ),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${authProvider.credits} Guc',
+                              style: const TextStyle(
+                                color: SeductiveColors.lunarWhite,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Tab bar
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: SeductiveColors.obsidianDark,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: SeductiveColors.neonMagenta.withOpacity(0.2),
                     ),
                   ),
-                ],
-              ),
-            ),
-            // Tab bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.surfaceDark : Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(10),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      gradient: SeductiveColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: SeductiveColors.neonGlow(
+                        color: SeductiveColors.neonMagenta,
+                        blur: 8,
+                      ),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: SeductiveColors.lunarWhite,
+                    unselectedLabelColor: SeductiveColors.dustyRose,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: 'VIP'),
+                      Tab(text: 'Guc Al'),
+                    ],
+                  ),
                 ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: Colors.white,
-                unselectedLabelColor:
-                    isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Premium'),
-                  Tab(text: 'Kredi Al'),
-                ],
-              ),
+                const SizedBox(height: 16),
+                // Tab content
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildPremiumTab(),
+                      _buildCreditsTab(),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            // Tab content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildPremiumTab(isDark),
-                  _buildCreditsTab(isDark),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPremiumTab(bool isDark) {
+  Widget _buildPremiumTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Header
-          const Text('👑', style: TextStyle(fontSize: 60)),
-          const SizedBox(height: 16),
-          Text(
-            'Premium\'a Geç',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+          // Header with crown
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              gradient: SeductiveColors.primaryGradient,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: SeductiveColors.neonGlow(
+                color: SeductiveColors.neonMagenta,
+                blur: 25,
+              ),
+            ),
+            child: const Center(
+              child: Text('', style: TextStyle(fontSize: 50)),
             ),
           ),
+          const SizedBox(height: 24),
+          const GradientText(
+            "VIP'e Yuksel",
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            gradient: SeductiveColors.primaryGradient,
+          ),
           const SizedBox(height: 8),
-          Text(
-            'Sınırsız analiz, reklamsız deneyim',
+          const Text(
+            'Sinirsiz analiz, reklamsiz deneyim',
             style: TextStyle(
               fontSize: 16,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+              color: SeductiveColors.silverMist,
             ),
           ),
           const SizedBox(height: 32),
           // Features
-          ...SubscriptionPlan.premium.features.map((feature) {
+          ...SubscriptionPlan.premium.features.asMap().entries.map((entry) {
+            final index = entry.key;
+            final feature = entry.value;
+            final isHighlighted = index == 0; // Deep Profile Analysis is first
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: isHighlighted
+                    ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                    : EdgeInsets.zero,
+                decoration: isHighlighted
+                    ? BoxDecoration(
+                        color: SeductiveColors.neonMagenta.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                        ),
+                      )
+                    : null,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        gradient: isHighlighted
+                            ? const LinearGradient(
+                                colors: [Color(0xFF9C27B0), Color(0xFFE91E63)],
+                              )
+                            : SeductiveColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: SeductiveColors.neonGlow(
+                          color: isHighlighted
+                              ? const Color(0xFF9C27B0)
+                              : SeductiveColors.neonMagenta,
+                          blur: isHighlighted ? 12 : 8,
+                        ),
+                      ),
+                      child: Icon(
+                        isHighlighted ? Icons.psychology_rounded : Icons.check,
+                        color: SeductiveColors.lunarWhite,
+                        size: 16,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 16,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  feature,
+                                  style: TextStyle(
+                                    fontSize: isHighlighted ? 15 : 16,
+                                    fontWeight: isHighlighted
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: SeductiveColors.lunarWhite,
+                                  ),
+                                ),
+                              ),
+                              if (isHighlighted) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF9C27B0),
+                                        Color(0xFFE91E63)
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'YENI',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: SeductiveColors.lunarWhite,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (isHighlighted) ...[
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Kapsamli karakter tahmini ve iliski onerisi',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: SeductiveColors.dustyRose,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    feature,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }),
@@ -195,27 +310,28 @@ class _PaywallScreenState extends State<PaywallScreen>
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isDark ? AppTheme.surfaceDark : Colors.grey[200],
+              color: SeductiveColors.obsidianDark,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: SeductiveColors.neonMagenta.withOpacity(0.2),
+              ),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: _buildPlanToggle(
-                    'Aylık',
-                    '₺${SubscriptionPlan.premium.monthlyPrice.toInt()}/ay',
+                    'Aylik',
+                    '${SubscriptionPlan.premium.monthlyPrice.toInt()}/ay',
                     !_isYearly,
                     () => setState(() => _isYearly = false),
-                    isDark,
                   ),
                 ),
                 Expanded(
                   child: _buildPlanToggle(
-                    'Yıllık',
-                    '₺${(SubscriptionPlan.premium.yearlyPrice! / 12).toInt()}/ay',
+                    'Yillik',
+                    '${(SubscriptionPlan.premium.yearlyPrice! / 12).toInt()}/ay',
                     _isYearly,
                     () => setState(() => _isYearly = true),
-                    isDark,
                     badge: '%28 tasarruf',
                   ),
                 ),
@@ -224,21 +340,23 @@ class _PaywallScreenState extends State<PaywallScreen>
           ),
           const SizedBox(height: 24),
           // Subscribe button
-          _buildPurchaseButton(
+          GlowButton(
             text: _isYearly
-                ? 'Yıllık ₺${SubscriptionPlan.premium.yearlyPrice!.toInt()}'
-                : 'Aylık ₺${SubscriptionPlan.premium.monthlyPrice.toInt()}',
-            onPressed: () => _purchasePremium(),
+                ? 'Yillik ${SubscriptionPlan.premium.yearlyPrice!.toInt()}'
+                : 'Aylik ${SubscriptionPlan.premium.monthlyPrice.toInt()}',
+            onPressed: _isLoading ? null : () => _purchasePremium(),
+            isLoading: _isLoading,
+            icon: Icons.workspace_premium_rounded,
           ),
           const SizedBox(height: 12),
           // Terms
           Text(
             _isYearly
-                ? 'Yıllık abonelik. İstediğin zaman iptal edebilirsin.'
-                : 'Aylık abonelik. İstediğin zaman iptal edebilirsin.',
-            style: TextStyle(
+                ? 'Yillik abonelik. Istedigin zaman iptal edebilirsin.'
+                : 'Aylik abonelik. Istedigin zaman iptal edebilirsin.',
+            style: const TextStyle(
               fontSize: 12,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textLight,
+              color: SeductiveColors.dustyRose,
             ),
             textAlign: TextAlign.center,
           ),
@@ -246,12 +364,13 @@ class _PaywallScreenState extends State<PaywallScreen>
           // Restore purchases button
           TextButton(
             onPressed: _isLoading ? null : _restorePurchases,
-            child: Text(
-              'Satın alımları geri yükle',
+            child: const Text(
+              'Satin alimlari geri yukle',
               style: TextStyle(
                 fontSize: 14,
-                color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                color: SeductiveColors.dustyRose,
                 decoration: TextDecoration.underline,
+                decorationColor: SeductiveColors.dustyRose,
               ),
             ),
           ),
@@ -264,8 +383,7 @@ class _PaywallScreenState extends State<PaywallScreen>
     String title,
     String price,
     bool isSelected,
-    VoidCallback onTap,
-    bool isDark, {
+    VoidCallback onTap, {
     String? badge,
   }) {
     return GestureDetector(
@@ -274,8 +392,14 @@ class _PaywallScreenState extends State<PaywallScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          gradient: isSelected ? AppTheme.primaryGradient : null,
+          gradient: isSelected ? SeductiveColors.primaryGradient : null,
           borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected
+              ? SeductiveColors.neonGlow(
+                  color: SeductiveColors.neonMagenta,
+                  blur: 8,
+                )
+              : null,
         ),
         child: Column(
           children: [
@@ -285,7 +409,7 @@ class _PaywallScreenState extends State<PaywallScreen>
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.2)
-                      : AppTheme.primaryPink.withOpacity(0.2),
+                      : SeductiveColors.neonMagenta.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -293,7 +417,9 @@ class _PaywallScreenState extends State<PaywallScreen>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : AppTheme.primaryPink,
+                    color: isSelected
+                        ? SeductiveColors.lunarWhite
+                        : SeductiveColors.neonMagenta,
                   ),
                 ),
               ),
@@ -305,8 +431,8 @@ class _PaywallScreenState extends State<PaywallScreen>
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: isSelected
-                    ? Colors.white
-                    : (isDark ? AppTheme.textWhite : AppTheme.textDark),
+                    ? SeductiveColors.lunarWhite
+                    : SeductiveColors.silverMist,
               ),
             ),
             Text(
@@ -315,7 +441,7 @@ class _PaywallScreenState extends State<PaywallScreen>
                 fontSize: 12,
                 color: isSelected
                     ? Colors.white70
-                    : (isDark ? AppTheme.textGrayDark : AppTheme.textGray),
+                    : SeductiveColors.dustyRose,
               ),
             ),
           ],
@@ -324,28 +450,40 @@ class _PaywallScreenState extends State<PaywallScreen>
     );
   }
 
-  Widget _buildCreditsTab(bool isDark) {
+  Widget _buildCreditsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
           // Header
-          const Text('⚡', style: TextStyle(fontSize: 60)),
-          const SizedBox(height: 16),
-          Text(
-            'Kredi Satın Al',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              gradient: SeductiveColors.buttonGradient,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: SeductiveColors.neonGlow(
+                color: SeductiveColors.neonCoral,
+                blur: 25,
+              ),
+            ),
+            child: const Center(
+              child: Text('', style: TextStyle(fontSize: 50)),
             ),
           ),
+          const SizedBox(height: 24),
+          const GradientText(
+            'Guc Satin Al',
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            gradient: SeductiveColors.buttonGradient,
+          ),
           const SizedBox(height: 8),
-          Text(
-            '1 kredi = 1 profil analizi',
+          const Text(
+            '1 guc = 1 profil analizi',
             style: TextStyle(
               fontSize: 16,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+              color: SeductiveColors.silverMist,
             ),
           ),
           const SizedBox(height: 32),
@@ -353,7 +491,7 @@ class _PaywallScreenState extends State<PaywallScreen>
           ...CreditPackage.packages.map((package) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: _buildCreditPackageCard(package, isDark),
+              child: _buildCreditPackageCard(package),
             );
           }),
           const SizedBox(height: 16),
@@ -361,21 +499,22 @@ class _PaywallScreenState extends State<PaywallScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppTheme.surfaceDark
-                  : AppTheme.primaryPink.withOpacity(0.1),
+              color: SeductiveColors.velvetPurple,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: SeductiveColors.neonPurple.withOpacity(0.3),
+              ),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Text('💡', style: TextStyle(fontSize: 24)),
-                const SizedBox(width: 12),
+                Text('', style: TextStyle(fontSize: 24)),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Premium üyelik ile her ay 50 bonus kredi kazanırsın!',
+                    'VIP uyelik ile her ay 50 bonus guc kazanirsin!',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                      color: SeductiveColors.lunarWhite,
                     ),
                   ),
                 ),
@@ -387,23 +526,28 @@ class _PaywallScreenState extends State<PaywallScreen>
     );
   }
 
-  Widget _buildCreditPackageCard(CreditPackage package, bool isDark) {
+  Widget _buildCreditPackageCard(CreditPackage package) {
     final pricePerCredit = package.price / package.credits;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(20),
         border: package.badge != null
-            ? Border.all(color: AppTheme.primaryPink, width: 2)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+            ? Border.all(color: SeductiveColors.neonMagenta, width: 2)
+            : Border.all(color: SeductiveColors.smokyViolet),
+        boxShadow: package.badge != null
+            ? SeductiveColors.neonGlow(
+                color: SeductiveColors.neonMagenta,
+                blur: 15,
+              )
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -419,8 +563,12 @@ class _PaywallScreenState extends State<PaywallScreen>
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
+                    gradient: SeductiveColors.primaryGradient,
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: SeductiveColors.neonGlow(
+                      color: SeductiveColors.neonMagenta,
+                      blur: 10,
+                    ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -428,13 +576,13 @@ class _PaywallScreenState extends State<PaywallScreen>
                       Text(
                         '${package.credits}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: SeductiveColors.lunarWhite,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const Text(
-                        'kredi',
+                        'guc',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
@@ -453,11 +601,10 @@ class _PaywallScreenState extends State<PaywallScreen>
                         children: [
                           Text(
                             package.name,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color:
-                                  isDark ? AppTheme.textWhite : AppTheme.textDark,
+                              color: SeductiveColors.lunarWhite,
                             ),
                           ),
                           if (package.badge != null) ...[
@@ -468,13 +615,13 @@ class _PaywallScreenState extends State<PaywallScreen>
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                gradient: AppTheme.primaryGradient,
+                                gradient: SeductiveColors.primaryGradient,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 package.badge!,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: SeductiveColors.lunarWhite,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -485,11 +632,10 @@ class _PaywallScreenState extends State<PaywallScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '₺${pricePerCredit.toStringAsFixed(2)} / kredi',
-                        style: TextStyle(
+                        '${pricePerCredit.toStringAsFixed(2)} / guc',
+                        style: const TextStyle(
                           fontSize: 13,
-                          color:
-                              isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                          color: SeductiveColors.dustyRose,
                         ),
                       ),
                     ],
@@ -502,13 +648,16 @@ class _PaywallScreenState extends State<PaywallScreen>
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryPink.withOpacity(0.1),
+                    color: SeductiveColors.neonMagenta.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                    ),
                   ),
                   child: Text(
-                    '₺${package.price.toInt()}',
+                    '${package.price.toInt()}',
                     style: const TextStyle(
-                      color: AppTheme.primaryPink,
+                      color: SeductiveColors.neonMagenta,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -516,53 +665,6 @@ class _PaywallScreenState extends State<PaywallScreen>
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPurchaseButton({
-    required String text,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryPink.withOpacity(0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(16),
-          child: Center(
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(
-                    text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
           ),
         ),
       ),
@@ -596,12 +698,12 @@ class _PaywallScreenState extends State<PaywallScreen>
           SnackBar(
             content: const Row(
               children: [
-                Text('👑', style: TextStyle(fontSize: 20)),
+                Text('', style: TextStyle(fontSize: 20)),
                 SizedBox(width: 12),
-                Text('Premium aktif! Hoş geldin! 🎉'),
+                Text('VIP aktif! Hos geldin!'),
               ],
             ),
-            backgroundColor: AppTheme.primaryPink,
+            backgroundColor: SeductiveColors.neonMagenta,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -610,7 +712,7 @@ class _PaywallScreenState extends State<PaywallScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.error!),
-            backgroundColor: Colors.red,
+            backgroundColor: SeductiveColors.dangerRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -646,12 +748,12 @@ class _PaywallScreenState extends State<PaywallScreen>
           SnackBar(
             content: const Row(
               children: [
-                Text('👑', style: TextStyle(fontSize: 20)),
+                Text('', style: TextStyle(fontSize: 20)),
                 SizedBox(width: 12),
-                Text('Premium aktif! Hoş geldin! 🎉'),
+                Text('VIP aktif! Hos geldin!'),
               ],
             ),
-            backgroundColor: AppTheme.primaryPink,
+            backgroundColor: SeductiveColors.neonMagenta,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -682,12 +784,12 @@ class _PaywallScreenState extends State<PaywallScreen>
           SnackBar(
             content: Row(
               children: [
-                const Text('⚡', style: TextStyle(fontSize: 20)),
+                const Text('', style: TextStyle(fontSize: 20)),
                 const SizedBox(width: 12),
-                Text('${package.credits} kredi eklendi! 🎉'),
+                Text('${package.credits} guc eklendi!'),
               ],
             ),
-            backgroundColor: AppTheme.primaryPink,
+            backgroundColor: SeductiveColors.neonMagenta,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -696,7 +798,7 @@ class _PaywallScreenState extends State<PaywallScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.error!),
-            backgroundColor: Colors.red,
+            backgroundColor: SeductiveColors.dangerRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -725,12 +827,12 @@ class _PaywallScreenState extends State<PaywallScreen>
           SnackBar(
             content: Row(
               children: [
-                const Text('⚡', style: TextStyle(fontSize: 20)),
+                const Text('', style: TextStyle(fontSize: 20)),
                 const SizedBox(width: 12),
-                Text('${package.credits} kredi eklendi! 🎉'),
+                Text('${package.credits} guc eklendi!'),
               ],
             ),
-            backgroundColor: AppTheme.primaryPink,
+            backgroundColor: SeductiveColors.neonMagenta,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -761,12 +863,12 @@ class _PaywallScreenState extends State<PaywallScreen>
           SnackBar(
             content: const Row(
               children: [
-                Text('👑', style: TextStyle(fontSize: 20)),
+                Text('', style: TextStyle(fontSize: 20)),
                 SizedBox(width: 12),
-                Text('Premium geri yüklendi!'),
+                Text('VIP geri yuklendi!'),
               ],
             ),
-            backgroundColor: AppTheme.primaryPink,
+            backgroundColor: SeductiveColors.neonMagenta,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -774,8 +876,8 @@ class _PaywallScreenState extends State<PaywallScreen>
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Geri yüklenecek satın alma bulunamadı'),
-            backgroundColor: Colors.orange,
+            content: const Text('Geri yuklenecek satin alma bulunamadi'),
+            backgroundColor: SeductiveColors.neonCoral,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -784,8 +886,8 @@ class _PaywallScreenState extends State<PaywallScreen>
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.error ?? 'Geri yükleme başarısız'),
-          backgroundColor: Colors.red,
+          content: Text(result.error ?? 'Geri yukleme basarisiz'),
+          backgroundColor: SeductiveColors.dangerRed,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

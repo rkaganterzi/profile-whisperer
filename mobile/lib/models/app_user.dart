@@ -169,6 +169,7 @@ class SubscriptionPlan {
     monthlyPrice: 29,
     yearlyPrice: 249,
     features: [
+      'Derin Profil Analizi (6-9 post)',
       'Reklamsız deneyim',
       '50 kredi/ay bonus',
       'Profil karşılaştırma',

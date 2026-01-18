@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/analysis_result.dart';
 import '../providers/history_provider.dart';
 import '../services/analytics_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
+import '../widgets/effects/light_leak.dart';
 
 class CompareScreen extends StatefulWidget {
   const CompareScreen({super.key});
@@ -35,111 +36,117 @@ class _CompareScreenState extends State<CompareScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // App bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profil Karşılaştır',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-                        ),
-                      ),
-                      Text(
-                        'Kim daha uyumlu? 💕',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+      backgroundColor: SeductiveColors.voidBlack,
+      body: LightLeak(
+        topLeft: true,
+        bottomRight: true,
+        intensity: 0.15,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // App bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
                   children: [
-                    // Profile selection row
-                    Row(
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: SeductiveColors.lunarWhite,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: _buildProfileSelector(
-                            context,
-                            profile: _profile1,
-                            label: 'Profil 1',
-                            onSelect: (result) {
-                              setState(() => _profile1 = result);
-                              _logComparisonIfBothSelected(result, _profile2);
-                            },
-                            isDark: isDark,
+                        Text(
+                          'Profil Karsilastir',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: SeductiveColors.lunarWhite,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.primaryGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Text(
-                            'VS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildProfileSelector(
-                            context,
-                            profile: _profile2,
-                            label: 'Profil 2',
-                            onSelect: (result) {
-                              setState(() => _profile2 = result);
-                              _logComparisonIfBothSelected(_profile1, result);
-                            },
-                            isDark: isDark,
+                        Text(
+                          'Kim daha uyumlu?',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: SeductiveColors.silverMist,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    // Comparison results
-                    if (_profile1 != null && _profile2 != null) ...[
-                      _buildComparisonSection(isDark),
-                    ] else ...[
-                      _buildEmptyState(isDark),
-                    ],
                   ],
                 ),
               ),
-            ),
-          ],
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Profile selection row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildProfileSelector(
+                              context,
+                              profile: _profile1,
+                              label: 'Profil 1',
+                              onSelect: (result) {
+                                setState(() => _profile1 = result);
+                                _logComparisonIfBothSelected(result, _profile2);
+                              },
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              gradient: SeductiveColors.primaryGradient,
+                              shape: BoxShape.circle,
+                              boxShadow: SeductiveColors.neonGlow(
+                                color: SeductiveColors.neonMagenta,
+                                blur: 10,
+                              ),
+                            ),
+                            child: const Text(
+                              'VS',
+                              style: TextStyle(
+                                color: SeductiveColors.lunarWhite,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildProfileSelector(
+                              context,
+                              profile: _profile2,
+                              label: 'Profil 2',
+                              onSelect: (result) {
+                                setState(() => _profile2 = result);
+                                _logComparisonIfBothSelected(_profile1, result);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      // Comparison results
+                      if (_profile1 != null && _profile2 != null) ...[
+                        _buildComparisonSection(),
+                      ] else ...[
+                        _buildEmptyState(),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -150,18 +157,17 @@ class _CompareScreenState extends State<CompareScreen> {
     required AnalysisResult? profile,
     required String label,
     required Function(AnalysisResult) onSelect,
-    required bool isDark,
   }) {
     if (profile == null) {
       return GestureDetector(
-        onTap: () => _showProfilePicker(context, onSelect, isDark),
+        onTap: () => _showProfilePicker(context, onSelect),
         child: Container(
           height: 180,
           decoration: BoxDecoration(
-            color: isDark ? AppTheme.surfaceDark : Colors.white,
+            color: SeductiveColors.velvetPurple,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppTheme.primaryPink.withOpacity(0.3),
+              color: SeductiveColors.neonMagenta.withOpacity(0.3),
               width: 2,
               style: BorderStyle.solid,
             ),
@@ -172,29 +178,29 @@ class _CompareScreenState extends State<CompareScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryPink.withOpacity(0.1),
+                  color: SeductiveColors.neonMagenta.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.add_rounded,
                   size: 32,
-                  color: AppTheme.primaryPink,
+                  color: SeductiveColors.neonMagenta,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                  color: SeductiveColors.lunarWhite,
                 ),
               ),
-              Text(
-                'Seçmek için dokun',
+              const Text(
+                'Secmek icin dokun',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                  color: SeductiveColors.silverMist,
                 ),
               ),
             ],
@@ -204,20 +210,17 @@ class _CompareScreenState extends State<CompareScreen> {
     }
 
     return GestureDetector(
-      onTap: () => _showProfilePicker(context, onSelect, isDark),
+      onTap: () => _showProfilePicker(context, onSelect),
       child: Container(
         height: 180,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: SeductiveColors.primaryGradient,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryPink.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: SeductiveColors.neonGlow(
+            color: SeductiveColors.neonMagenta,
+            blur: 15,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -230,7 +233,7 @@ class _CompareScreenState extends State<CompareScreen> {
             Text(
               profile.vibeType,
               style: const TextStyle(
-                color: Colors.white,
+                color: SeductiveColors.lunarWhite,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -248,7 +251,7 @@ class _CompareScreenState extends State<CompareScreen> {
               child: Text(
                 profile.energy,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: SeductiveColors.lunarWhite,
                   fontSize: 11,
                 ),
               ),
@@ -262,15 +265,14 @@ class _CompareScreenState extends State<CompareScreen> {
   void _showProfilePicker(
     BuildContext context,
     Function(AnalysisResult) onSelect,
-    bool isDark,
   ) {
     final history = context.read<HistoryProvider>().history;
 
     if (history.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Henüz analiz geçmişin yok! Önce profil analiz et.'),
-          backgroundColor: AppTheme.primaryPink,
+          content: const Text('Henuz analiz gecmisin yok! Once profil analiz et.'),
+          backgroundColor: SeductiveColors.neonMagenta,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -280,7 +282,7 @@ class _CompareScreenState extends State<CompareScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? AppTheme.backgroundDark : Colors.white,
+      backgroundColor: SeductiveColors.velvetPurple,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -297,17 +299,17 @@ class _CompareScreenState extends State<CompareScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey[600] : Colors.grey[300],
+                color: SeductiveColors.smokyViolet,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Profil Seç',
+            const Text(
+              'Profil Sec',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                color: SeductiveColors.lunarWhite,
               ),
             ),
             const SizedBox(height: 16),
@@ -321,7 +323,7 @@ class _CompareScreenState extends State<CompareScreen> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: isDark ? AppTheme.surfaceDark : AppTheme.backgroundLight,
+                      color: SeductiveColors.obsidianDark,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ListTile(
@@ -329,7 +331,7 @@ class _CompareScreenState extends State<CompareScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
+                          gradient: SeductiveColors.primaryGradient,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
@@ -341,22 +343,22 @@ class _CompareScreenState extends State<CompareScreen> {
                       ),
                       title: Text(
                         item.result.vibeType,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                          color: SeductiveColors.lunarWhite,
                         ),
                       ),
                       subtitle: Text(
                         item.instagramUsername != null
                             ? '@${item.instagramUsername}'
                             : item.result.energy,
-                        style: TextStyle(
-                          color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                        style: const TextStyle(
+                          color: SeductiveColors.silverMist,
                         ),
                       ),
-                      trailing: Icon(
+                      trailing: const Icon(
                         Icons.chevron_right_rounded,
-                        color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                        color: SeductiveColors.dustyRose,
                       ),
                       onTap: () {
                         onSelect(item.result);
@@ -373,35 +375,36 @@ class _CompareScreenState extends State<CompareScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: SeductiveColors.smokyViolet),
       ),
       child: Column(
         children: [
           Icon(
             Icons.compare_arrows_rounded,
             size: 64,
-            color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+            color: SeductiveColors.dustyRose,
           ),
           const SizedBox(height: 16),
-          Text(
-            'İki profil seç ve karşılaştır!',
+          const Text(
+            'Iki profil sec ve karsilastir!',
             style: TextStyle(
               fontSize: 16,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+              color: SeductiveColors.silverMist,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Geçmişinden profilleri seçerek\nuyumluluk analizini gör',
+          const Text(
+            'Gecmisinden profilleri secerek\nuyumluluk analizini gor',
             style: TextStyle(
               fontSize: 13,
-              color: isDark ? AppTheme.textGrayDark.withOpacity(0.7) : AppTheme.textLight,
+              color: SeductiveColors.dustyRose,
             ),
             textAlign: TextAlign.center,
           ),
@@ -410,7 +413,7 @@ class _CompareScreenState extends State<CompareScreen> {
     );
   }
 
-  Widget _buildComparisonSection(bool isDark) {
+  Widget _buildComparisonSection() {
     final score = _calculateCompatibilityScore();
     final emoji = score >= 80
         ? '💕'
@@ -426,15 +429,12 @@ class _CompareScreenState extends State<CompareScreen> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: AppTheme.primaryGradient,
+            gradient: SeductiveColors.primaryGradient,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryPink.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            boxShadow: SeductiveColors.neonGlow(
+              color: SeductiveColors.neonMagenta,
+              blur: 20,
+            ),
           ),
           child: Column(
             children: [
@@ -457,7 +457,7 @@ class _CompareScreenState extends State<CompareScreen> {
                   Text(
                     '%$score',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: SeductiveColors.lunarWhite,
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                     ),
@@ -468,7 +468,7 @@ class _CompareScreenState extends State<CompareScreen> {
               Text(
                 _getCompatibilityMessage(score),
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: SeductiveColors.lunarWhite,
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -479,16 +479,15 @@ class _CompareScreenState extends State<CompareScreen> {
         const SizedBox(height: 24),
         // Detailed comparison
         _buildComparisonCard(
-          title: 'Enerji Karşılaştırması',
+          title: 'Enerji Karsilastirmasi',
           icon: '⚡',
           value1: _profile1!.energy,
           value2: _profile2!.energy,
-          isDark: isDark,
         ),
         const SizedBox(height: 12),
-        _buildTraitsComparison(isDark),
+        _buildTraitsComparison(),
         const SizedBox(height: 12),
-        _buildFlagsComparison(isDark),
+        _buildFlagsComparison(),
       ],
     );
   }
@@ -498,18 +497,18 @@ class _CompareScreenState extends State<CompareScreen> {
     required String icon,
     required String value1,
     required String value2,
-    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: SeductiveColors.smokyViolet),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -522,10 +521,10 @@ class _CompareScreenState extends State<CompareScreen> {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                  color: SeductiveColors.lunarWhite,
                 ),
               ),
             ],
@@ -537,42 +536,40 @@ class _CompareScreenState extends State<CompareScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryPink.withOpacity(0.1),
+                    color: SeductiveColors.neonMagenta.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     value1,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                      color: SeductiveColors.lunarWhite,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   'vs',
-                  style: TextStyle(
-                    color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                  ),
+                  style: TextStyle(color: SeductiveColors.dustyRose),
                 ),
               ),
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentPurple.withOpacity(0.1),
+                    color: SeductiveColors.neonPurple.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     value2,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                      color: SeductiveColors.lunarWhite,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -585,7 +582,7 @@ class _CompareScreenState extends State<CompareScreen> {
     );
   }
 
-  Widget _buildTraitsComparison(bool isDark) {
+  Widget _buildTraitsComparison() {
     final commonTraits = _profile1!.traits
         .where((t) => _profile2!.traits.contains(t))
         .toList();
@@ -593,40 +590,32 @@ class _CompareScreenState extends State<CompareScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: SeductiveColors.smokyViolet),
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('✨', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
+              Text('✨', style: TextStyle(fontSize: 18)),
+              SizedBox(width: 8),
               Text(
-                'Ortak Özellikler',
+                'Ortak Ozellikler',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                  color: SeductiveColors.lunarWhite,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           if (commonTraits.isEmpty)
-            Text(
-              'Ortak özellik yok 😅',
-              style: TextStyle(
-                color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-              ),
+            const Text(
+              'Ortak ozellik yok',
+              style: TextStyle(color: SeductiveColors.silverMist),
             )
           else
             Wrap(
@@ -637,13 +626,13 @@ class _CompareScreenState extends State<CompareScreen> {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
+                    gradient: SeductiveColors.primaryGradient,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     trait,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: SeductiveColors.lunarWhite,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -656,33 +645,27 @@ class _CompareScreenState extends State<CompareScreen> {
     );
   }
 
-  Widget _buildFlagsComparison(bool isDark) {
+  Widget _buildFlagsComparison() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: SeductiveColors.smokyViolet),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🚩', style: TextStyle(fontSize: 18)),
+              const Text('⚠️', style: TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              Text(
-                'Red Flag Sayısı',
+              const Text(
+                'Tehlike Sayisi',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                  color: SeductiveColors.lunarWhite,
                 ),
               ),
             ],
@@ -694,19 +677,17 @@ class _CompareScreenState extends State<CompareScreen> {
               _buildFlagCount(
                 count: _profile1!.redFlags.length,
                 label: 'Profil 1',
-                color: Colors.red,
-                isDark: isDark,
+                color: SeductiveColors.dangerRed,
               ),
               Container(
                 width: 1,
                 height: 40,
-                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                color: SeductiveColors.smokyViolet,
               ),
               _buildFlagCount(
                 count: _profile2!.redFlags.length,
                 label: 'Profil 2',
-                color: Colors.red,
-                isDark: isDark,
+                color: SeductiveColors.dangerRed,
               ),
             ],
           ),
@@ -716,12 +697,12 @@ class _CompareScreenState extends State<CompareScreen> {
             children: [
               const Text('💚', style: TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              Text(
-                'Green Flag Sayısı',
+              const Text(
+                'Firsat Sayisi',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                  color: SeductiveColors.lunarWhite,
                 ),
               ),
             ],
@@ -733,19 +714,17 @@ class _CompareScreenState extends State<CompareScreen> {
               _buildFlagCount(
                 count: _profile1!.greenFlags.length,
                 label: 'Profil 1',
-                color: Colors.green,
-                isDark: isDark,
+                color: SeductiveColors.successGreen,
               ),
               Container(
                 width: 1,
                 height: 40,
-                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                color: SeductiveColors.smokyViolet,
               ),
               _buildFlagCount(
                 count: _profile2!.greenFlags.length,
                 label: 'Profil 2',
-                color: Colors.green,
-                isDark: isDark,
+                color: SeductiveColors.successGreen,
               ),
             ],
           ),
@@ -758,7 +737,6 @@ class _CompareScreenState extends State<CompareScreen> {
     required int count,
     required String label,
     required Color color,
-    required bool isDark,
   }) {
     return Column(
       children: [
@@ -772,9 +750,9 @@ class _CompareScreenState extends State<CompareScreen> {
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+            color: SeductiveColors.silverMist,
           ),
         ),
       ],
@@ -784,40 +762,35 @@ class _CompareScreenState extends State<CompareScreen> {
   int _calculateCompatibilityScore() {
     if (_profile1 == null || _profile2 == null) return 0;
 
-    int score = 50; // Base score
+    int score = 50;
 
-    // Common traits bonus
     final commonTraits = _profile1!.traits
         .where((t) => _profile2!.traits.contains(t))
         .length;
     score += commonTraits * 5;
 
-    // Green flags bonus
     final totalGreenFlags = _profile1!.greenFlags.length + _profile2!.greenFlags.length;
     score += (totalGreenFlags * 2);
 
-    // Red flags penalty
     final totalRedFlags = _profile1!.redFlags.length + _profile2!.redFlags.length;
     score -= (totalRedFlags * 3);
 
-    // Same energy bonus
     if (_profile1!.energy == _profile2!.energy) {
       score += 10;
     }
 
-    // Clamp score between 0 and 100
     return score.clamp(0, 100);
   }
 
   String _getCompatibilityMessage(int score) {
     if (score >= 80) {
-      return 'Mükemmel uyum! Aşkın tadını çıkarın 💕';
+      return 'Mukemmel uyum! Askin tadini cikarin';
     } else if (score >= 60) {
-      return 'İyi bir potansiyel var! Şans verin 💛';
+      return 'Iyi bir potansiyel var! Sans verin';
     } else if (score >= 40) {
-      return 'Biraz çaba gerekebilir 🤔';
+      return 'Biraz caba gerekebilir';
     } else {
-      return 'Belki sadece arkadaş kalın... 💔';
+      return 'Belki sadece arkadas kalin...';
     }
   }
 }

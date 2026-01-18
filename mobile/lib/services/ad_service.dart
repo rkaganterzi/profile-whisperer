@@ -15,21 +15,21 @@ class AdService {
   bool get isInitialized => _isInitialized;
   bool get isInterstitialAdReady => _isInterstitialAdReady;
 
-  // Test Ad Unit IDs (replace with real IDs in production)
+  // Production Ad Unit IDs
   static String get bannerAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111'; // Test ID
+      return 'ca-app-pub-9682546527690102/3057584116'; // Android Banner
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716'; // Test ID
+      return 'ca-app-pub-9682546527690102/3057584116'; // iOS Banner (aynı veya iOS için ayrı oluştur)
     }
     return '';
   }
 
   static String get interstitialAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712'; // Test ID
+      return 'ca-app-pub-9682546527690102/1456921359'; // Android Interstitial
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/4411468910'; // Test ID
+      return 'ca-app-pub-9682546527690102/1456921359'; // iOS Interstitial (aynı veya iOS için ayrı oluştur)
     }
     return '';
   }

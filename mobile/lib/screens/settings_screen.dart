@@ -5,7 +5,9 @@ import '../providers/history_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/sound_service.dart';
 import '../services/analytics_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
+import '../widgets/core/neon_text.dart';
+import '../widgets/core/glass_card.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,69 +28,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
     final settingsProvider = context.watch<SettingsProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: SeductiveColors.voidBlack,
       appBar: AppBar(
-        title: const Text('Ayarlar'),
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Ayarlar',
+          style: TextStyle(color: SeductiveColors.lunarWhite),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: SeductiveColors.lunarWhite,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Appearance Section
-          _buildSectionTitle(context, 'Görünüm'),
-          const SizedBox(height: 12),
-          _buildCard(
-            context,
-            children: [
-              _buildThemeOption(
-                context,
-                icon: Icons.brightness_auto,
-                title: 'Sistem',
-                subtitle: 'Cihaz ayarını takip et',
-                isSelected: themeProvider.themeMode == ThemeMode.system,
-                onTap: () => themeProvider.setThemeMode(ThemeMode.system),
-              ),
-              const Divider(height: 1),
-              _buildThemeOption(
-                context,
-                icon: Icons.light_mode,
-                title: 'Aydınlık',
-                subtitle: 'Her zaman açık tema',
-                isSelected: themeProvider.themeMode == ThemeMode.light,
-                onTap: () => themeProvider.setThemeMode(ThemeMode.light),
-              ),
-              const Divider(height: 1),
-              _buildThemeOption(
-                context,
-                icon: Icons.dark_mode,
-                title: 'Karanlık',
-                subtitle: 'Her zaman koyu tema',
-                isSelected: themeProvider.themeMode == ThemeMode.dark,
-                onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
           // Analysis Mode Section
-          _buildSectionTitle(context, 'Analiz Modu'),
+          _buildSectionTitle('Analiz Modu'),
           const SizedBox(height: 12),
           _buildCard(
-            context,
             children: [
               _buildSwitchTile(
-                context,
                 icon: Icons.local_fire_department_rounded,
                 title: 'Roast Modu',
-                subtitle: 'Acımasız ve komik analizler',
+                subtitle: 'Acimasiz ve komik analizler',
                 value: settingsProvider.roastModeEnabled,
                 onChanged: (value) async {
                   await settingsProvider.setRoastMode(value);
@@ -100,23 +69,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: SeductiveColors.neonCyan.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: SeductiveColors.neonCyan.withOpacity(0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.info_outline,
                           size: 18,
-                          color: Colors.blue[700],
+                          color: SeductiveColors.neonCyan,
                         ),
                         const SizedBox(width: 8),
-                        Expanded(
+                        const Expanded(
                           child: Text(
-                            'Roast modu kapalıyken daha nazik analizler alırsın',
+                            'Roast modu kapaliyken daha nazik analizler alirsin',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.blue[700],
+                              color: SeductiveColors.silverMist,
                             ),
                           ),
                         ),
@@ -131,13 +103,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Sound Section
-          _buildSectionTitle(context, 'Ses'),
+          _buildSectionTitle('Ses'),
           const SizedBox(height: 12),
           _buildCard(
-            context,
             children: [
               _buildSwitchTile(
-                context,
                 icon: Icons.volume_up_rounded,
                 title: 'Ses Efektleri',
                 subtitle: 'Uygulama sesleri',
@@ -156,22 +126,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // About Section
-          _buildSectionTitle(context, 'Hakkında'),
+          _buildSectionTitle('Hakkinda'),
           const SizedBox(height: 12),
           _buildCard(
-            context,
             children: [
               _buildInfoTile(
-                context,
                 icon: Icons.info_outline,
                 title: 'Versiyon',
                 trailing: '1.0.0',
               ),
-              const Divider(height: 1),
+              Container(
+                height: 1,
+                color: SeductiveColors.smokyViolet,
+              ),
               _buildInfoTile(
-                context,
                 icon: Icons.favorite_outline,
-                title: 'Yapımcı',
+                title: 'Yapimci',
                 trailing: 'Profile Whisperer',
               ),
             ],
@@ -180,24 +150,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Fun Stats
-          _buildSectionTitle(context, 'Eğlenceli İstatistikler'),
+          _buildSectionTitle('Eglenceli Istatistikler'),
           const SizedBox(height: 12),
           Consumer<HistoryProvider>(
             builder: (context, historyProvider, _) {
               return _buildCard(
-                context,
                 children: [
                   _buildStatTile(
-                    context,
-                    emoji: '🔥',
-                    title: 'Toplam Analiz',
+                    emoji: '🔮',
+                    title: 'Toplam Tarama',
                     value: historyProvider.totalAnalyses.toString(),
                   ),
-                  const Divider(height: 1),
+                  Container(
+                    height: 1,
+                    color: SeductiveColors.smokyViolet,
+                  ),
                   _buildStatTile(
-                    context,
                     emoji: '📊',
-                    title: 'En Çok Görülen Vibe',
+                    title: 'En Cok Gorulen Vibe',
                     value: historyProvider.getMostCommonVibeType() ?? '-',
                     isSmallValue: true,
                   ),
@@ -212,28 +182,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: Column(
               children: [
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      AppTheme.primaryGradient.createShader(bounds),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: SeductiveColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: SeductiveColors.neonGlow(
+                      color: SeductiveColors.neonMagenta,
+                      blur: 15,
+                    ),
+                  ),
                   child: const Icon(
-                    Icons.local_fire_department,
-                    size: 32,
-                    color: Colors.white,
+                    Icons.psychology_rounded,
+                    size: 28,
+                    color: SeductiveColors.lunarWhite,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 12),
+                const Text(
                   'Profile Whisperer',
                   style: TextStyle(
-                    color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                    color: SeductiveColors.silverMist,
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Stalk. Anla. Yürü.',
+                const Text(
+                  'Kesfet. Coz. Fethet.',
                   style: TextStyle(
-                    color: isDark ? AppTheme.textLightDark : AppTheme.textLight,
+                    color: SeductiveColors.dustyRose,
                     fontSize: 12,
                   ),
                 ),
@@ -245,29 +222,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+        color: SeductiveColors.dustyRose,
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context, {required List<Widget> children}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildCard({required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: SeductiveColors.smokyViolet,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -275,108 +253,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildThemeOption(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                gradient: isSelected ? AppTheme.primaryGradient : null,
-                color: isSelected
-                    ? null
-                    : (isDark
-                        ? AppTheme.backgroundDarkSecondary
-                        : AppTheme.backgroundLight),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: isSelected
-                    ? Colors.white
-                    : (isDark ? AppTheme.textGrayDark : AppTheme.textGray),
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color:
-                          isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: AppTheme.primaryPink,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoTile(
-    BuildContext context, {
+  Widget _buildInfoTile({
     required IconData icon,
     required String title,
     required String trailing,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Icon(
             icon,
-            color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+            color: SeductiveColors.dustyRose,
             size: 22,
           ),
           const SizedBox(width: 16),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+              color: SeductiveColors.lunarWhite,
             ),
           ),
           const Spacer(),
           Text(
             trailing,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+              color: SeductiveColors.silverMist,
             ),
           ),
         ],
@@ -384,15 +288,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildStatTile(
-    BuildContext context, {
+  Widget _buildStatTile({
     required String emoji,
     required String title,
     required String value,
     bool isSmallValue = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -402,9 +303,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
-                color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                color: SeductiveColors.lunarWhite,
               ),
             ),
           ),
@@ -414,15 +315,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+              gradient: SeductiveColors.primaryGradient,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: SeductiveColors.neonMagenta.withOpacity(0.3),
+                  blurRadius: 8,
+                ),
+              ],
             ),
             child: Text(
               value,
               style: TextStyle(
                 fontSize: isSmallValue ? 11 : 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: SeductiveColors.lunarWhite,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -433,16 +340,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSwitchTile(
-    BuildContext context, {
+  Widget _buildSwitchTile({
     required IconData icon,
     required String title,
     required String subtitle,
     required bool value,
     required Function(bool) onChanged,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -450,14 +354,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppTheme.backgroundDarkSecondary
-                  : AppTheme.backgroundLight,
+              color: SeductiveColors.obsidianDark,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
-              color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+              color: SeductiveColors.dustyRose,
               size: 22,
             ),
           ),
@@ -468,17 +370,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                    color: SeductiveColors.lunarWhite,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                    color: SeductiveColors.silverMist,
                   ),
                 ),
               ],
@@ -487,7 +389,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppTheme.primaryPink,
+            activeColor: SeductiveColors.neonMagenta,
+            activeTrackColor: SeductiveColors.neonMagenta.withOpacity(0.3),
+            inactiveThumbColor: SeductiveColors.dustyRose,
+            inactiveTrackColor: SeductiveColors.smokyViolet,
           ),
         ],
       ),

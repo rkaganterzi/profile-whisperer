@@ -1,7 +1,15 @@
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Body
-from app.models import AnalysisResult, RemainingUsesResponse, InstagramAnalysisRequest, InstagramAnalysisResponse
+from app.models import (
+    AnalysisResult,
+    RemainingUsesResponse,
+    InstagramAnalysisRequest,
+    InstagramAnalysisResponse,
+    DeepAnalysisRequest,
+    DeepAnalysisResult,
+    DeepAnalysisResponse,
+)
 from app.config import get_settings, Settings
 from app.services.ai_service import get_ai_service, AIService
 from app.services.rate_limiter import RateLimiter, get_rate_limiter
@@ -180,4 +188,122 @@ async def get_remaining_uses(
     return RemainingUsesResponse(
         remaining=remaining,
         reset_at=rate_limiter.get_reset_time(client_id),
+    )
+
+
+def build_deep_result(result: dict) -> DeepAnalysisResult:
+    """Build DeepAnalysisResult from AI response."""
+    return DeepAnalysisResult(
+        id=str(uuid.uuid4()),
+        profile_archetype=result.get("profile_archetype", "Bilinmeyen Tip"),
+        archetype_emoji=result.get("archetype_emoji", "🔮"),
+        content_patterns=result.get("content_patterns", []),
+        engagement_analysis=result.get("engagement_analysis", ""),
+        engagement_rate=result.get("engagement_rate", 0.0),
+        deep_roast=result.get("deep_roast", ""),
+        relationship_prediction=result.get("relationship_prediction", ""),
+        warning_signs=result.get("warning_signs", []),
+        created_at=datetime.now(),
+    )
+
+
+@router.post("/analyze-instagram-deep", response_model=DeepAnalysisResponse)
+async def analyze_instagram_deep(
+    request: DeepAnalysisRequest,
+    settings: Settings = Depends(get_settings),
+    ai_service: AIService = Depends(get_ai_service),
+    rate_limiter: RateLimiter = Depends(get_rate_limiter),
+    instagram: InstagramScraper = Depends(get_instagram_scraper),
+):
+    """
+    Deep analysis of an Instagram profile.
+    Analyzes 6-9 posts with captions, likes, and comments.
+    Premium feature only.
+    """
+    client_id = "anonymous"  # TODO: Get from auth with premium check
+
+    if not rate_limiter.check_limit(client_id):
+        return DeepAnalysisResponse(
+            success=False,
+            error="Günlük limit doldu. Yarın tekrar dene!",
+            error_code="rate_limit"
+        )
+
+    # Fetch profile with deep data
+    profile = await instagram.fetch_profile_deep(request.url, max_posts=9)
+
+    if profile.error:
+        error_messages = {
+            "invalid_username": "Geçersiz Instagram kullanıcı adı veya linki",
+            "user_not_found": f"@{profile.username} bulunamadı",
+            "login_required": "Instagram giriş istiyor",
+            "timeout": "Instagram çok yavaş yanıt verdi",
+            "no_images_found": "Profil fotoğrafı bulunamadı",
+            "no_profile_pic": "Profil fotoğrafı çekilemedi",
+            "download_failed": "Görsel indirilemedi",
+            "all_methods_failed": "Instagram engelliyor",
+        }
+        error_msg = error_messages.get(profile.error, "Bir hata oluştu")
+
+        return DeepAnalysisResponse(
+            success=False,
+            error=error_msg,
+            error_code=profile.error,
+            username=profile.username if profile.username else None
+        )
+
+    if profile.is_private:
+        return DeepAnalysisResponse(
+            success=False,
+            error=f"@{profile.username} gizli hesap. Derin analiz sadece açık profiller için yapılabilir.",
+            error_code="private_account",
+            username=profile.username
+        )
+
+    # Check minimum post requirement
+    if len(profile.post_images) < 3:
+        return DeepAnalysisResponse(
+            success=False,
+            error=f"Derin analiz için en az 3 post gerekli. Bu profilde {len(profile.post_images)} post bulundu.",
+            error_code="insufficient_posts",
+            username=profile.username,
+            post_count_analyzed=len(profile.post_images)
+        )
+
+    # Perform deep analysis
+    try:
+        result = await ai_service.analyze_profile_deep(
+            images=profile.post_images,
+            captions=profile.post_captions,
+            like_counts=profile.post_like_counts,
+            comment_counts=profile.post_comment_counts,
+            follower_count=profile.follower_count or 0,
+            bio=profile.bio or "",
+            language=request.language,
+        )
+    except NotImplementedError:
+        return DeepAnalysisResponse(
+            success=False,
+            error="Derin analiz bu servis için desteklenmiyor",
+            error_code="not_implemented",
+            username=profile.username
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return DeepAnalysisResponse(
+            success=False,
+            error=f"AI analizi başarısız: {str(e)}",
+            error_code="ai_error",
+            username=profile.username
+        )
+
+    # Increment usage (counts as premium feature use)
+    rate_limiter.increment(client_id)
+
+    return DeepAnalysisResponse(
+        success=True,
+        result=build_deep_result(result),
+        username=profile.username,
+        post_count_analyzed=len(profile.post_images)
     )

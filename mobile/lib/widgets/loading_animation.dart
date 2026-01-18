@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
 
 class LoadingAnimation extends StatefulWidget {
   const LoadingAnimation({super.key});
@@ -15,15 +15,16 @@ class _LoadingAnimationState extends State<LoadingAnimation>
   late AnimationController _pulseController;
   late AnimationController _textController;
   late Animation<double> _pulseAnimation;
+  late Animation<double> _glowAnimation;
 
   final List<String> _loadingTexts = [
-    'Profili stalklıyorum... 👀',
-    'Vibe\'ı analiz ediyorum... ✨',
-    'Red flag\'leri arıyorum... 🚩',
-    'Green flag\'leri sayıyorum... 💚',
-    'Açılış repliği yazıyorum... 💬',
-    'Roast hazırlıyorum... 🔥',
-    'Son rötuşlar... 💅',
+    'Hedefe siziyorum...',
+    "Vibe'i analiz ediyorum...",
+    'Tehlikeleri ariyorum...',
+    'Firsatlari sayiyorum...',
+    'Silah hazirliyorum...',
+    'Roast hazirliyorum...',
+    'Son rotuslar...',
   ];
 
   int _currentTextIndex = 0;
@@ -39,10 +40,14 @@ class _LoadingAnimationState extends State<LoadingAnimation>
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
 
     _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _glowAnimation = Tween<double>(begin: 0.3, end: 0.7).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
@@ -71,8 +76,6 @@ class _LoadingAnimationState extends State<LoadingAnimation>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -95,11 +98,11 @@ class _LoadingAnimationState extends State<LoadingAnimation>
                         shape: BoxShape.circle,
                         gradient: SweepGradient(
                           colors: [
-                            AppTheme.primaryOrange,
-                            AppTheme.primaryPink,
-                            AppTheme.primaryRed,
-                            AppTheme.accentPurple,
-                            AppTheme.primaryOrange,
+                            SeductiveColors.neonMagenta,
+                            SeductiveColors.neonPurple,
+                            SeductiveColors.neonWine,
+                            SeductiveColors.neonCoral,
+                            SeductiveColors.neonMagenta,
                           ],
                         ),
                       ),
@@ -108,20 +111,33 @@ class _LoadingAnimationState extends State<LoadingAnimation>
                 },
               ),
               // Inner circle
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark ? AppTheme.backgroundDark : AppTheme.backgroundLight,
-                ),
+              AnimatedBuilder(
+                animation: _glowAnimation,
+                builder: (context, child) {
+                  return Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: SeductiveColors.voidBlack,
+                      boxShadow: [
+                        BoxShadow(
+                          color: SeductiveColors.neonMagenta
+                              .withOpacity(_glowAnimation.value * 0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              // Fire icon
+              // Brain/AI icon
               ShaderMask(
                 shaderCallback: (bounds) =>
-                    AppTheme.primaryGradient.createShader(bounds),
+                    SeductiveColors.primaryGradient.createShader(bounds),
                 child: const Icon(
-                  Icons.local_fire_department,
+                  Icons.psychology_rounded,
                   size: 50,
                   color: Colors.white,
                 ),
@@ -130,21 +146,33 @@ class _LoadingAnimationState extends State<LoadingAnimation>
           ),
         ),
         const SizedBox(height: 32),
-        // Animated text
+        // Animated text with fade
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 500),
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.3),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
           child: Text(
             _loadingTexts[_currentTextIndex],
             key: ValueKey(_currentTextIndex),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+              color: SeductiveColors.lunarWhite,
             ),
           ),
         ),
         const SizedBox(height: 16),
-        // Progress dots
+        // Progress dots with glow
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(3, (index) {
@@ -159,12 +187,13 @@ class _LoadingAnimationState extends State<LoadingAnimation>
                   height: 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: AppTheme.primaryGradient,
+                    gradient: SeductiveColors.primaryGradient,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryPink.withOpacity(0.5 * value.abs()),
-                        blurRadius: 8 * value.abs(),
-                        spreadRadius: 2 * value.abs(),
+                        color: SeductiveColors.neonMagenta
+                            .withOpacity(0.5 * value.abs()),
+                        blurRadius: 10 * value.abs(),
+                        spreadRadius: 3 * value.abs(),
                       ),
                     ],
                   ),
@@ -221,8 +250,6 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -234,17 +261,11 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
             gradient: LinearGradient(
               begin: Alignment(_animation.value - 1, 0),
               end: Alignment(_animation.value, 0),
-              colors: isDark
-                  ? [
-                      AppTheme.surfaceDark,
-                      AppTheme.backgroundDarkSecondary,
-                      AppTheme.surfaceDark,
-                    ]
-                  : [
-                      Colors.grey[300]!,
-                      Colors.grey[100]!,
-                      Colors.grey[300]!,
-                    ],
+              colors: [
+                SeductiveColors.velvetPurple,
+                SeductiveColors.smokyViolet,
+                SeductiveColors.velvetPurple,
+              ],
             ),
           ),
         );

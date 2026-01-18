@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -16,7 +15,7 @@ import 'services/analytics_service.dart';
 import 'services/ad_service.dart';
 import 'services/purchase_service.dart';
 import 'screens/splash_screen.dart';
-import 'theme/app_theme.dart';
+import 'theme/seductive_theme.dart';
 
 bool firebaseInitialized = false;
 
@@ -65,24 +64,17 @@ class ProfileWhispererApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AchievementProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          // Update status bar based on theme
-          SystemChrome.setSystemUIOverlayStyle(
-            SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: themeProvider.isDarkMode
-                  ? Brightness.light
-                  : Brightness.dark,
-            ),
-          );
+      child: Builder(
+        builder: (context) {
+          // Configure system UI for dark theme
+          SeductiveTheme.configureSystemUI();
 
           return MaterialApp(
             title: 'Profile Whisperer',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
+            theme: SeductiveTheme.darkTheme,
+            darkTheme: SeductiveTheme.darkTheme,
+            themeMode: ThemeMode.dark,
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,

@@ -18,6 +18,18 @@ class InstagramProfile:
     post_count: Optional[int]
     is_private: bool
     error: Optional[str] = None
+    # Deep analysis fields
+    post_captions: List[str] = None
+    post_like_counts: List[int] = None
+    post_comment_counts: List[int] = None
+
+    def __post_init__(self):
+        if self.post_captions is None:
+            self.post_captions = []
+        if self.post_like_counts is None:
+            self.post_like_counts = []
+        if self.post_comment_counts is None:
+            self.post_comment_counts = []
 
 
 class InstagramScraper:
@@ -73,6 +85,118 @@ class InstagramScraper:
                 continue
 
         return self._error_profile(username, "all_methods_failed")
+
+    async def fetch_profile_deep(self, url_or_username: str, max_posts: int = 9) -> InstagramProfile:
+        """Fetch Instagram profile with deep analysis data (6-9 posts with metadata)."""
+        username = self.extract_username(url_or_username)
+
+        if not username:
+            return self._error_profile("", "invalid_username")
+
+        print(f"[Instagram] Deep fetching profile: @{username} (max {max_posts} posts)")
+
+        # Try web_profile_info first as it provides the most data
+        try:
+            result = await self._try_web_profile_info_deep(username, max_posts)
+            if result and not result.error:
+                print(f"[Instagram] Deep fetch success with _try_web_profile_info_deep")
+                return result
+        except Exception as e:
+            print(f"[Instagram] Deep fetch error: {e}")
+
+        # Fallback to regular fetch if deep fetch fails
+        print("[Instagram] Deep fetch failed, falling back to regular fetch")
+        return await self.fetch_profile(url_or_username)
+
+    async def _try_web_profile_info_deep(self, username: str, max_posts: int = 9) -> Optional[InstagramProfile]:
+        """Try Instagram's web_profile_info endpoint for deep analysis."""
+        url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "X-IG-App-ID": "936619743392459",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"https://www.instagram.com/{username}/",
+        }
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, headers=headers)
+
+            if response.status_code != 200:
+                return None
+
+            data = response.json()
+            user = data.get("data", {}).get("user")
+
+            if not user:
+                return self._error_profile(username, "user_not_found")
+
+            profile_pic_url = user.get("profile_pic_url_hd") or user.get("profile_pic_url")
+            is_private = user.get("is_private", False)
+
+            # Download profile pic
+            profile_pic_bytes = await self._download_image(client, profile_pic_url)
+
+            # Initialize deep analysis data
+            post_images = []
+            post_captions = []
+            post_like_counts = []
+            post_comment_counts = []
+
+            if not is_private:
+                edges = user.get("edge_owner_to_timeline_media", {}).get("edges", [])
+                for edge in edges[:max_posts]:
+                    node = edge.get("node", {})
+
+                    # Get image URL
+                    img_url = node.get("display_url")
+                    if img_url:
+                        img_bytes = await self._download_image(client, img_url)
+                        if img_bytes:
+                            post_images.append(img_bytes)
+
+                            # Get caption
+                            caption_edges = node.get("edge_media_to_caption", {}).get("edges", [])
+                            caption = ""
+                            if caption_edges:
+                                caption = caption_edges[0].get("node", {}).get("text", "")
+                            post_captions.append(caption)
+
+                            # Get like count
+                            like_count = node.get("edge_liked_by", {}).get("count", 0)
+                            if like_count == 0:
+                                like_count = node.get("edge_media_preview_like", {}).get("count", 0)
+                            post_like_counts.append(like_count)
+
+                            # Get comment count
+                            comment_count = node.get("edge_media_to_comment", {}).get("count", 0)
+                            if comment_count == 0:
+                                comment_count = node.get("edge_media_preview_comment", {}).get("count", 0)
+                            post_comment_counts.append(comment_count)
+
+            if not profile_pic_bytes and not post_images:
+                return self._error_profile(username, "no_images_found")
+
+            print(f"[Instagram] Deep fetch: {len(post_images)} posts, {len(post_captions)} captions")
+
+            return InstagramProfile(
+                username=username,
+                full_name=user.get("full_name"),
+                bio=user.get("biography"),
+                profile_pic_url=profile_pic_url,
+                profile_pic_bytes=profile_pic_bytes,
+                post_images=post_images,
+                follower_count=user.get("edge_followed_by", {}).get("count"),
+                following_count=user.get("edge_follow", {}).get("count"),
+                post_count=user.get("edge_owner_to_timeline_media", {}).get("count"),
+                is_private=is_private,
+                error=None,
+                post_captions=post_captions,
+                post_like_counts=post_like_counts,
+                post_comment_counts=post_comment_counts,
+            )
 
     async def _try_web_profile_info(self, username: str) -> Optional[InstagramProfile]:
         """Try Instagram's web_profile_info endpoint."""

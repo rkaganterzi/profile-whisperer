@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/analysis_result.dart';
+import '../models/deep_analysis_result.dart';
 
 class InstagramAnalysisResult {
   final bool success;
@@ -106,6 +107,39 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('ApiService: Exception - $e');
+      rethrow;
+    }
+  }
+
+  Future<DeepAnalysisResponse> analyzeInstagramDeep(
+    String urlOrUsername, {
+    String language = 'tr',
+    bool roastMode = true,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/analyze-instagram-deep');
+    debugPrint('ApiService: POST $uri with url=$urlOrUsername (deep analysis)');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'url': urlOrUsername,
+          'language': language,
+          'roast_mode': roastMode,
+        }),
+      );
+      debugPrint('ApiService: Deep analysis response status=${response.statusCode}');
+      debugPrint('ApiService: Deep analysis response body=${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return DeepAnalysisResponse.fromJson(json);
+      } else {
+        throw ApiException('Derin analiz başarısız: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('ApiService: Deep analysis exception - $e');
       rethrow;
     }
   }

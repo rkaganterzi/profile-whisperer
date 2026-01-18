@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../theme/app_theme.dart';
+import '../theme/seductive_colors.dart';
+import '../widgets/core/glow_button.dart';
+import '../widgets/core/neon_text.dart';
+import '../widgets/effects/light_leak.dart';
+import '../animations/page_transitions.dart';
 import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -28,10 +32,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 600),
     );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
     );
     _animController.forward();
   }
@@ -72,28 +76,24 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        SeductivePageRoute(page: const HomeScreen()),
       );
     } else if (!success && mounted) {
-      _showError(authProvider.errorMessage ?? 'Bir hata oluştu');
+      _showError(authProvider.errorMessage ?? 'Bir hata olustu');
     }
   }
 
   Future<void> _signInWithGoogle() async {
-    debugPrint('AuthScreen: _signInWithGoogle started');
     HapticFeedback.lightImpact();
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.signInWithGoogle();
-    debugPrint('AuthScreen: signInWithGoogle returned: $success, mounted: $mounted');
 
     if (success && mounted) {
-      debugPrint('AuthScreen: Navigating to HomeScreen');
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        SeductivePageRoute(page: const HomeScreen()),
       );
     } else if (!success && mounted) {
-      debugPrint('AuthScreen: Showing error: ${authProvider.errorMessage}');
-      _showError(authProvider.errorMessage ?? 'Google ile giriş başarısız');
+      _showError(authProvider.errorMessage ?? 'Google ile giris basarisiz');
     }
   }
 
@@ -104,7 +104,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        SeductivePageRoute(page: const HomeScreen()),
       );
     }
   }
@@ -113,7 +113,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: SeductiveColors.dangerRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -122,222 +122,212 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
+      backgroundColor: SeductiveColors.voidBlack,
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
-                // Logo
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryPink.withOpacity(0.4),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+        child: LightLeak(
+          topLeft: true,
+          bottomRight: true,
+          intensity: 0.2,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 40),
+                  // Logo
+                  Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        gradient: SeductiveColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: SeductiveColors.neonGlow(
+                          color: SeductiveColors.neonMagenta,
+                          blur: 25,
                         ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text('🔥', style: TextStyle(fontSize: 50)),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.psychology_rounded,
+                          size: 50,
+                          color: SeductiveColors.lunarWhite,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                // Title
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      AppTheme.primaryGradient.createShader(bounds),
-                  child: const Text(
-                    'Profile Whisperer',
-                    style: TextStyle(
+                  const SizedBox(height: 24),
+                  // Title
+                  const Center(
+                    child: GradientText(
+                      'Profile Whisperer',
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isLogin ? 'Tekrar hoş geldin!' : 'Hesap oluştur',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      _isLogin ? 'Tekrar hos geldin!' : 'Hesap olustur',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: SeductiveColors.silverMist,
+                      ),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                // Form
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Name field (only for signup)
-                      if (!_isLogin) ...[
+                  const SizedBox(height: 40),
+                  // Form
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        if (!_isLogin) ...[
+                          _buildTextField(
+                            controller: _nameController,
+                            label: 'Ad Soyad',
+                            icon: Icons.person_outline,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Lutfen adinizi girin';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         _buildTextField(
-                          controller: _nameController,
-                          label: 'Ad Soyad',
-                          icon: Icons.person_outline,
-                          isDark: isDark,
+                          controller: _emailController,
+                          label: 'E-posta',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Lütfen adınızı girin';
+                              return 'Lutfen e-posta girin';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Gecerli bir e-posta girin';
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
-                      ],
-                      // Email field
-                      _buildTextField(
-                        controller: _emailController,
-                        label: 'E-posta',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        isDark: isDark,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Lütfen e-posta girin';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Geçerli bir e-posta girin';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      // Password field
-                      _buildTextField(
-                        controller: _passwordController,
-                        label: 'Şifre',
-                        icon: Icons.lock_outline,
-                        obscureText: _obscurePassword,
-                        isDark: isDark,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                        _buildTextField(
+                          controller: _passwordController,
+                          label: 'Sifre',
+                          icon: Icons.lock_outline,
+                          obscureText: _obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: SeductiveColors.dustyRose,
+                            ),
+                            onPressed: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
                           ),
-                          onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Lutfen sifre girin';
+                            }
+                            if (value.length < 6) {
+                              return 'Sifre en az 6 karakter olmali';
+                            }
+                            return null;
                           },
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Lütfen şifre girin';
-                          }
-                          if (value.length < 6) {
-                            return 'Şifre en az 6 karakter olmalı';
-                          }
-                          return null;
-                        },
+                      ],
+                    ),
+                  ),
+                  if (_isLogin) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => _showForgotPasswordDialog(),
+                        child: const Text(
+                          'Sifremi Unuttum',
+                          style: TextStyle(color: SeductiveColors.neonMagenta),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  // Submit button
+                  GlowButton(
+                    text: _isLogin ? 'Giris Yap' : 'Kayit Ol',
+                    isLoading: authProvider.isLoading,
+                    onPressed: _submitForm,
+                  ),
+                  const SizedBox(height: 24),
+                  // Divider
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: SeductiveColors.smokyViolet,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'veya',
+                          style: TextStyle(color: SeductiveColors.dustyRose),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: SeductiveColors.smokyViolet,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                // Forgot password
-                if (_isLogin) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => _showForgotPasswordDialog(),
-                      child: const Text(
-                        'Şifremi Unuttum',
-                        style: TextStyle(color: AppTheme.primaryPink),
+                  const SizedBox(height: 24),
+                  // Google sign in
+                  _buildSocialButton(
+                    text: 'Google ile devam et',
+                    icon: 'G',
+                    onPressed: _signInWithGoogle,
+                    isLoading: authProvider.isLoading,
+                  ),
+                  const SizedBox(height: 12),
+                  // Guest mode
+                  _buildOutlinedButton(
+                    text: 'Misafir olarak devam et',
+                    onPressed: _continueAsGuest,
+                    isLoading: authProvider.isLoading,
+                  ),
+                  const SizedBox(height: 32),
+                  // Toggle login/signup
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isLogin ? 'Hesabin yok mu?' : 'Zaten hesabin var mi?',
+                        style: const TextStyle(color: SeductiveColors.silverMist),
                       ),
-                    ),
+                      TextButton(
+                        onPressed: _toggleMode,
+                        child: Text(
+                          _isLogin ? 'Kayit Ol' : 'Giris Yap',
+                          style: const TextStyle(
+                            color: SeductiveColors.neonMagenta,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-                const SizedBox(height: 24),
-                // Submit button
-                _buildGradientButton(
-                  text: _isLogin ? 'Giriş Yap' : 'Kayıt Ol',
-                  isLoading: authProvider.isLoading,
-                  onPressed: _submitForm,
-                ),
-                const SizedBox(height: 24),
-                // Divider
-                Row(
-                  children: [
-                    Expanded(
-                      child: Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'veya',
-                        style: TextStyle(
-                          color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                // Google sign in
-                _buildSocialButton(
-                  text: 'Google ile devam et',
-                  icon: 'G',
-                  onPressed: _signInWithGoogle,
-                  isDark: isDark,
-                  isLoading: authProvider.isLoading,
-                ),
-                const SizedBox(height: 12),
-                // Guest mode
-                _buildOutlinedButton(
-                  text: 'Misafir olarak devam et',
-                  onPressed: _continueAsGuest,
-                  isDark: isDark,
-                  isLoading: authProvider.isLoading,
-                ),
-                const SizedBox(height: 32),
-                // Toggle login/signup
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _isLogin ? 'Hesabın yok mu?' : 'Zaten hesabın var mı?',
-                      style: TextStyle(
-                        color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: _toggleMode,
-                      child: Text(
-                        _isLogin ? 'Kayıt Ol' : 'Giriş Yap',
-                        style: const TextStyle(
-                          color: AppTheme.primaryPink,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -349,7 +339,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    required bool isDark,
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
@@ -360,79 +349,25 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
-      style: TextStyle(
-        color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-      ),
+      style: const TextStyle(color: SeductiveColors.lunarWhite),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-        ),
+        labelStyle: const TextStyle(color: SeductiveColors.dustyRose),
+        prefixIcon: Icon(icon, color: SeductiveColors.dustyRose),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: isDark ? AppTheme.surfaceDark : Colors.grey[100],
+        fillColor: SeductiveColors.obsidianDark,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppTheme.primaryPink, width: 2),
+          borderSide: const BorderSide(color: SeductiveColors.neonMagenta, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red, width: 1),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGradientButton({
-    required String text,
-    required VoidCallback onPressed,
-    bool isLoading = false,
-  }) {
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryPink.withOpacity(0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(16),
-          child: Center(
-            child: isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(
-                    text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-          ),
+          borderSide: const BorderSide(color: SeductiveColors.dangerRed, width: 1),
         ),
       ),
     );
@@ -442,17 +377,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     required String text,
     required String icon,
     required VoidCallback onPressed,
-    required bool isDark,
     bool isLoading = false,
   }) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: SeductiveColors.velvetPurple,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-        ),
+        border: Border.all(color: SeductiveColors.smokyViolet),
       ),
       child: Material(
         color: Colors.transparent,
@@ -483,8 +415,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               const SizedBox(width: 12),
               Text(
                 text,
-                style: TextStyle(
-                  color: isDark ? AppTheme.textWhite : AppTheme.textDark,
+                style: const TextStyle(
+                  color: SeductiveColors.lunarWhite,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -499,7 +431,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   Widget _buildOutlinedButton({
     required String text,
     required VoidCallback onPressed,
-    required bool isDark,
     bool isLoading = false,
   }) {
     return Container(
@@ -507,7 +438,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.primaryPink.withOpacity(0.5),
+          color: SeductiveColors.neonMagenta.withOpacity(0.5),
           width: 2,
         ),
       ),
@@ -520,7 +451,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             child: Text(
               text,
               style: const TextStyle(
-                color: AppTheme.primaryPink,
+                color: SeductiveColors.neonMagenta,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -533,38 +464,35 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppTheme.surfaceDark : Colors.white,
+        backgroundColor: SeductiveColors.velvetPurple,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: Text(
-          'Şifre Sıfırla',
-          style: TextStyle(
-            color: isDark ? AppTheme.textWhite : AppTheme.textDark,
-          ),
+        title: const Text(
+          'Sifre Sifirla',
+          style: TextStyle(color: SeductiveColors.lunarWhite),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.',
-              style: TextStyle(
-                color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-              ),
+            const Text(
+              'E-posta adresinize sifre sifirlama baglantisi gonderecegiz.',
+              style: TextStyle(color: SeductiveColors.silverMist),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: SeductiveColors.lunarWhite),
               decoration: InputDecoration(
                 labelText: 'E-posta',
+                labelStyle: const TextStyle(color: SeductiveColors.dustyRose),
                 filled: true,
-                fillColor: isDark ? AppTheme.backgroundDarkSecondary : Colors.grey[100],
+                fillColor: SeductiveColors.obsidianDark,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -576,11 +504,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'İptal',
-              style: TextStyle(
-                color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
-              ),
+            child: const Text(
+              'Iptal',
+              style: TextStyle(color: SeductiveColors.dustyRose),
             ),
           ),
           TextButton(
@@ -595,10 +521,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   SnackBar(
                     content: Text(
                       success
-                          ? 'Şifre sıfırlama e-postası gönderildi!'
-                          : 'E-posta gönderilemedi.',
+                          ? 'Sifre sifirlama e-postasi gonderildi!'
+                          : 'E-posta gonderilemedi.',
                     ),
-                    backgroundColor: success ? Colors.green : Colors.red,
+                    backgroundColor:
+                        success ? SeductiveColors.successGreen : SeductiveColors.dangerRed,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -608,8 +535,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               }
             },
             child: const Text(
-              'Gönder',
-              style: TextStyle(color: AppTheme.primaryPink),
+              'Gonder',
+              style: TextStyle(color: SeductiveColors.neonMagenta),
             ),
           ),
         ],

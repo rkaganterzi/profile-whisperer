@@ -43,3 +43,32 @@ class RemainingUsesResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+# Deep Analysis Models
+class DeepAnalysisRequest(BaseModel):
+    url: str
+    language: str = "tr"
+    roast_mode: bool = True
+
+
+class DeepAnalysisResult(BaseModel):
+    id: str
+    profile_archetype: str
+    archetype_emoji: str
+    content_patterns: List[str]
+    engagement_analysis: str
+    engagement_rate: float = 0.0
+    deep_roast: str
+    relationship_prediction: str
+    warning_signs: List[str]
+    created_at: datetime
+
+
+class DeepAnalysisResponse(BaseModel):
+    success: bool
+    result: Optional[DeepAnalysisResult] = None
+    error: Optional[str] = None
+    error_code: Optional[str] = None
+    username: Optional[str] = None
+    post_count_analyzed: int = 0
