@@ -13,7 +13,7 @@ class AIService(ABC):
     """Abstract base class for AI services."""
 
     @abstractmethod
-    async def analyze_profile(self, image_bytes: bytes, language: str = "en") -> Dict[str, Any]:
+    async def analyze_profile(self, image_bytes: bytes, language: str = "en", roast_mode: bool = True) -> Dict[str, Any]:
         pass
 
 
@@ -32,7 +32,7 @@ class ClaudeCodeBridge(AIService):
         os.makedirs(request_dir, exist_ok=True)
         os.makedirs(response_dir, exist_ok=True)
 
-    async def analyze_profile(self, image_bytes: bytes, language: str = "en") -> Dict[str, Any]:
+    async def analyze_profile(self, image_bytes: bytes, language: str = "en", roast_mode: bool = True) -> Dict[str, Any]:
         request_id = str(uuid.uuid4())[:8]
         request_path = os.path.join(self.request_dir, request_id)
         response_path = os.path.join(self.response_dir, f"{request_id}.json")
@@ -46,7 +46,7 @@ class ClaudeCodeBridge(AIService):
             f.write(image_bytes)
 
         # Save prompt
-        prompt = self._generate_prompt(language)
+        prompt = self._generate_prompt(language, roast_mode)
         prompt_path = os.path.join(request_path, "prompt.txt")
         with open(prompt_path, "w", encoding="utf-8") as f:
             f.write(prompt)
@@ -55,6 +55,7 @@ class ClaudeCodeBridge(AIService):
         metadata = {
             "request_id": request_id,
             "language": language,
+            "roast_mode": roast_mode,
             "created_at": datetime.now().isoformat(),
             "status": "pending",
         }
@@ -88,48 +89,109 @@ class ClaudeCodeBridge(AIService):
 
         raise TimeoutError(f"Analysis timed out after {self.timeout} seconds")
 
-    def _generate_prompt(self, language: str) -> str:
-        lang_prompts = {
-            "en": """You are a fun personality quiz generator for a social entertainment app. The user has uploaded THEIR OWN profile photo to discover their "vibe type" - similar to popular personality quizzes like "What kind of bread are you?" or MBTI memes.
+    def _generate_prompt(self, language: str, roast_mode: bool = True) -> str:
+        if roast_mode:
+            # Roast mode prompts (original aggressive prompts)
+            lang_prompts = {
+                "en": """Analyze this profile photo with maximum sass and humor. Be brutally honest but funny - like a best friend roasting them.
 
-This is a lighthearted self-discovery tool where users analyze themselves for fun and share results with friends.
+Return this JSON:
+{
+    "vibe_type": "Creative 2-4 word label - be specific and funny",
+    "vibe_emoji": "Perfect emoji for this vibe",
+    "description": "4-5 sentences of BRUTAL but funny roast. Notice specific details.",
+    "roast": "One killer roast line - the kind a best friend would say",
+    "red_flags": ["Funny 'red flag' observation 1", "Red flag 2", "Red flag 3"],
+    "green_flags": ["Genuine positive trait 1", "Green flag 2", "Green flag 3"],
+    "traits": ["trait1", "trait2", "trait3", "trait4", "trait5"],
+    "conversation_starters": [
+        "Genuinely curious question about something specific in the photo",
+        "Playful teasing opener that shows you noticed details",
+        "Creative/funny observation that would make them laugh",
+        "Smooth but not cringe - something actually clever",
+        "Bold opener for the brave"
+    ],
+    "energy": "Specific energy description",
+    "compatibility": "What type of person would vibe with them"
+}
+
+Be SPECIFIC to what you see. No generic responses. ONLY return JSON.""",
+
+                "tr": """Sen huysuz, alaycı ve acımasız bir analizcisin. Acımasızca roastla ama komik ol.
+
+Şu JSON'u dön:
+{
+    "vibe_type": "Acımasız 2-4 kelimelik etiket",
+    "vibe_emoji": "En uygun emoji",
+    "description": "4-5 cümle TAM GAZ roast. Gördüğün her detayla dalga geç.",
+    "roast": "TEK CÜMLE öldürücü laf",
+    "red_flags": ["Acımasız red flag 1", "Red flag 2", "Red flag 3", "Red flag 4", "Red flag 5"],
+    "green_flags": ["Bir tane olsun istersen ama isteksizce yaz", "Sanki zor bulmuşsun gibi"],
+    "traits": ["ozellik1", "ozellik2", "ozellik3", "ozellik4", "ozellik5"],
+    "conversation_starters": [
+        "İğneleyici ama merak uyandıran soru",
+        "Hafif dalga geçen ama konuşma başlatan",
+        "Bold ve direkt açılış",
+        "Komik gözlem + soru kombinasyonu",
+        "Yüzsüzce ama çekici açılış"
+    ],
+    "energy": "Kısa enerji tanımı",
+    "compatibility": "Kimle çıkar bu?"
+}
+
+JENERİK CEVAP YOK - her şey fotoğrafa özel. SADECE JSON dön.""",
+            }
+        else:
+            # Friendly mode prompts (non-roast, positive vibes)
+            lang_prompts = {
+                "en": """You are a fun personality quiz generator for a social entertainment app. The user has uploaded THEIR OWN profile photo to discover their "vibe type".
 
 Analyze the photo and return this JSON structure:
 {
-    "vibe_type": "A fun 2-4 word personality label (e.g., 'Chaotic Academic', 'Golden Retriever Energy', 'Main Character', 'Cozy Homebody', 'Creative Soul')",
+    "vibe_type": "A fun 2-4 word personality label (e.g., 'Creative Soul', 'Golden Retriever Energy')",
     "vibe_emoji": "One emoji representing this vibe",
-    "description": "2-3 fun sentences describing this vibe/energy in a playful way",
+    "description": "2-3 fun sentences describing this vibe/energy in a positive, playful way",
+    "roast": "A gentle, friendly observation (not mean)",
+    "red_flags": ["Playful quirk 1", "Playful quirk 2"],
+    "green_flags": ["Genuine positive trait 1", "Green flag 2", "Green flag 3", "Green flag 4"],
     "traits": ["trait1", "trait2", "trait3", "trait4"],
     "conversation_starters": [
         "A fun icebreaker question based on something visible in the photo",
         "A creative conversation topic they might enjoy",
-        "A playful observation that could start a friendly chat"
+        "A playful observation that could start a friendly chat",
+        "A genuine compliment turned into a question",
+        "A warm and inviting opener"
     ],
-    "energy": "High Energy / Chill Vibes / Mysterious / Approachable / Creative"
+    "energy": "High Energy / Chill Vibes / Mysterious / Approachable / Creative",
+    "compatibility": "What type of person would vibe well with them"
 }
 
-Keep it fun, positive, and like a BuzzFeed personality quiz result. The conversation starters are friendly icebreakers, not pickup lines.""",
+Keep it fun, positive, and encouraging! ONLY return JSON.""",
 
-            "tr": """Sen eglenceli bir kisilik testi uygulamasi icin vibe analizi yapiyorsun. Kullanici KENDI profil fotografini yukleyerek "vibe tipini" kesfetmek istiyor - "Hangi ekmek turusun?" veya MBTI memeleri gibi populer kisilik testleri gibi.
+                "tr": """Sen eğlenceli bir kişilik testi uygulaması için vibe analizi yapıyorsun. Kullanıcı kendi fotoğrafını yükleyerek "vibe tipini" keşfetmek istiyor.
 
-Bu, kullanicilarin kendilerini eglence icin analiz ettigi ve sonuclari arkadaslariyla paylastigi eglenceli bir kendini kesif araci.
-
-Fotografi analiz et ve su JSON yapisini don:
+Fotoğrafı analiz et ve şu JSON yapısını dön:
 {
-    "vibe_type": "Eglenceli 2-4 kelimelik kisilik etiketi (orn: 'Kaotik Akademisyen', 'Golden Retriever Enerjisi', 'Ana Karakter', 'Rahat Ev Kedisi')",
-    "vibe_emoji": "Bu vibe'i temsil eden bir emoji",
-    "description": "Bu vibe/enerjiyi eglenceli bir sekilde anlatan 2-3 cumle",
-    "traits": ["ozellik1", "ozellik2", "ozellik3", "ozellik4"],
+    "vibe_type": "Eğlenceli 2-4 kelimelik kişilik etiketi (ör: 'Yaratıcı Ruh', 'Golden Retriever Enerjisi')",
+    "vibe_emoji": "Bu vibe'ı temsil eden bir emoji",
+    "description": "Bu vibe/enerjiyi pozitif ve eğlenceli bir şekilde anlatan 2-3 cümle",
+    "roast": "Nazik ve arkadaşça bir gözlem (kırıcı değil)",
+    "red_flags": ["Sevimli tuhaf özellik 1", "Sevimli tuhaf özellik 2"],
+    "green_flags": ["Gerçek pozitif özellik 1", "Green flag 2", "Green flag 3", "Green flag 4"],
+    "traits": ["özellik1", "özellik2", "özellik3", "özellik4"],
     "conversation_starters": [
-        "Fotograftaki bir seye dayanan eglenceli bir sohbet baslangici",
-        "Hoslanabilecekleri yaratici bir sohbet konusu",
-        "Arkadas sohbeti baslatan eglenceli bir gozlem"
+        "Fotoğraftaki bir şeye dayanan eğlenceli sohbet başlangıcı",
+        "Hoşlanabilecekleri yaratıcı bir sohbet konusu",
+        "Arkadaşça sohbet başlatan eğlenceli bir gözlem",
+        "Samimi bir iltifattan türetilmiş soru",
+        "Sıcak ve davetkar bir açılış"
     ],
-    "energy": "Yuksek Enerji / Rahat Vibes / Gizemli / Yaklasilabilir / Yaratici"
+    "energy": "Yüksek Enerji / Rahat Vibes / Gizemli / Yaklaşılabilir / Yaratıcı",
+    "compatibility": "Kimle iyi anlaşır"
 }
 
-Eglenceli, pozitif ve BuzzFeed kisilik testi sonucu gibi olsun. Sohbet baslangiclar samimi buzkiricilar.""",
-        }
+Eğlenceli, pozitif ve cesaretlendirici ol! SADECE JSON dön.""",
+            }
 
         return lang_prompts.get(language, lang_prompts["en"])
 
@@ -142,9 +204,11 @@ class ClaudeAPIService(AIService):
     def __init__(self, api_key: str):
         self.api_key = api_key
 
-    def _get_prompt(self, language: str) -> str:
-        prompts = {
-            "en": """Analyze this profile photo with maximum sass and humor. Be brutally honest but funny - like a best friend roasting them.
+    def _get_prompt(self, language: str, roast_mode: bool = True) -> str:
+        if roast_mode:
+            # Roast mode prompts (aggressive, funny roasts)
+            prompts = {
+                "en": """Analyze this profile photo with maximum sass and humor. Be brutally honest but funny - like a best friend roasting them.
 
 Return this JSON:
 {
@@ -168,7 +232,7 @@ Return this JSON:
 
 Be SPECIFIC to what you see. No generic responses. Channel Twitter roast energy. ONLY return JSON.""",
 
-            "tr": """Sen huysuz, alaycı ve acımasız bir analizcisin. Sanki hayattan bıkmış bir virgin arkadaşın gibi düşün - kimseyi beğenmez, her şeyde kusur bulur, ama o kadar haklı ki gülmekten kendini alamazsın.
+                "tr": """Sen huysuz, alaycı ve acımasız bir analizcisin. Sanki hayattan bıkmış bir virgin arkadaşın gibi düşün - kimseyi beğenmez, her şeyde kusur bulur, ama o kadar haklı ki gülmekten kendini alamazsın.
 
 Fotoğrafı gör ve ACÍMASIZCA roastla. Övgü yok, iltifat yok. Sadece sert gerçekler ve komik hakaret.
 
@@ -200,16 +264,64 @@ KURALLAR:
 3. ROAST ÖNCELİKLİ - insanlar paylaşsın diye
 4. TÜRKÇE GÜNLÜK DİL - internet şakası gibi
 5. SADECE JSON dön, başka bir şey yazma""",
-        }
+            }
+        else:
+            # Friendly mode prompts (positive, encouraging)
+            prompts = {
+                "en": """You are a fun personality quiz generator. Analyze this profile photo with warmth and positivity.
+
+Return this JSON:
+{
+    "vibe_type": "A fun 2-4 word personality label (e.g., 'Creative Soul', 'Golden Retriever Energy', 'Cozy Homebody')",
+    "vibe_emoji": "One emoji representing this vibe",
+    "description": "2-3 fun sentences describing this vibe/energy in a positive, playful way",
+    "roast": "A gentle, friendly observation (not mean)",
+    "red_flags": ["Playful quirk 1", "Playful quirk 2"],
+    "green_flags": ["Genuine positive trait 1", "Green flag 2", "Green flag 3", "Green flag 4"],
+    "traits": ["trait1", "trait2", "trait3", "trait4"],
+    "conversation_starters": [
+        "A fun icebreaker question based on something visible in the photo",
+        "A creative conversation topic they might enjoy",
+        "A playful observation that could start a friendly chat",
+        "A genuine compliment turned into a question",
+        "A warm and inviting opener"
+    ],
+    "energy": "High Energy / Chill Vibes / Mysterious / Approachable / Creative",
+    "compatibility": "What type of person would vibe well with them"
+}
+
+Keep it fun, positive, and encouraging! ONLY return JSON.""",
+
+                "tr": """Sen eğlenceli bir kişilik testi uygulaması için vibe analizi yapıyorsun. Fotoğrafı sıcak ve pozitif bir şekilde analiz et.
+
+Şu JSON'u dön:
+{
+    "vibe_type": "Eğlenceli 2-4 kelimelik kişilik etiketi (ör: 'Yaratıcı Ruh', 'Golden Retriever Enerjisi', 'Rahat Ev Kedisi')",
+    "vibe_emoji": "Bu vibe'ı temsil eden bir emoji",
+    "description": "Bu vibe/enerjiyi pozitif ve eğlenceli bir şekilde anlatan 2-3 cümle",
+    "roast": "Nazik ve arkadaşça bir gözlem (kırıcı değil)",
+    "red_flags": ["Sevimli tuhaf özellik 1", "Sevimli tuhaf özellik 2"],
+    "green_flags": ["Gerçek pozitif özellik 1", "Green flag 2", "Green flag 3", "Green flag 4"],
+    "traits": ["özellik1", "özellik2", "özellik3", "özellik4"],
+    "conversation_starters": [
+        "Fotoğraftaki bir şeye dayanan eğlenceli sohbet başlangıcı",
+        "Hoşlanabilecekleri yaratıcı bir sohbet konusu",
+        "Arkadaşça sohbet başlatan eğlenceli bir gözlem",
+        "Samimi bir iltifattan türetilmiş soru",
+        "Sıcak ve davetkar bir açılış"
+    ],
+    "energy": "Yüksek Enerji / Rahat Vibes / Gizemli / Yaklaşılabilir / Yaratıcı",
+    "compatibility": "Kimle iyi anlaşır"
+}
+
+Eğlenceli, pozitif ve cesaretlendirici ol! SADECE JSON dön.""",
+            }
+
         return prompts.get(language, prompts["en"])
 
-    async def analyze_profile(self, image_bytes: bytes, language: str = "en") -> Dict[str, Any]:
-        import httpx
-
-        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-        prompt = self._get_prompt(language)
-
-        system_prompt = """Sen "Profile Whisperer" için çalışan huysuz, sinirli ve acımasız bir analizcisin. Hayattan bıkmış bir virgin gibi düşün - hiç kimseyi beğenmezsin, her fotoğrafta bir sorun bulursun.
+    def _get_system_prompt(self, roast_mode: bool = True) -> str:
+        if roast_mode:
+            return """Sen "Profile Whisperer" için çalışan huysuz, sinirli ve acımasız bir analizcisin. Hayattan bıkmış bir virgin gibi düşün - hiç kimseyi beğenmezsin, her fotoğrafta bir sorun bulursun.
 
 KARAKTER:
 - Huysuz virgin energy - kimse seni etkileyemez
@@ -220,6 +332,24 @@ KARAKTER:
 - Jenerik cevap vermektense ölürsün
 
 KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON."""
+        else:
+            return """Sen "Profile Whisperer" için çalışan pozitif ve eğlenceli bir analizcisin. Arkadaş canlısı ve cesaretlendirici ol.
+
+KARAKTER:
+- Pozitif enerji - insanları mutlu etmeyi seversin
+- Eğlenceli ama saygılı
+- BuzzFeed kişilik testi havası
+- Green flag bulmaktan mutlu olursun
+- Samimi ve sıcak bir ton
+
+KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON."""
+
+    async def analyze_profile(self, image_bytes: bytes, language: str = "en", roast_mode: bool = True) -> Dict[str, Any]:
+        import httpx
+
+        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+        prompt = self._get_prompt(language, roast_mode)
+        system_prompt = self._get_system_prompt(roast_mode)
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(

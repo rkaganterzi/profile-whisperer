@@ -25,6 +25,7 @@ class AnalysisRequest(BaseModel):
 class InstagramAnalysisRequest(BaseModel):
     url: str
     language: str = "tr"
+    roast_mode: bool = True
 
 
 class InstagramAnalysisResponse(BaseModel):

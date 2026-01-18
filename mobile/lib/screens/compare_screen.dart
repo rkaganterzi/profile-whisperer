@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/analysis_result.dart';
 import '../providers/history_provider.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 
 class CompareScreen extends StatefulWidget {
@@ -12,8 +13,25 @@ class CompareScreen extends StatefulWidget {
 }
 
 class _CompareScreenState extends State<CompareScreen> {
+  final AnalyticsService _analytics = AnalyticsService();
   AnalysisResult? _profile1;
   AnalysisResult? _profile2;
+
+  @override
+  void initState() {
+    super.initState();
+    _analytics.logScreenView('compare_screen');
+  }
+
+  void _logComparisonIfBothSelected(AnalysisResult? p1, AnalysisResult? p2) {
+    if (p1 != null && p2 != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _analytics.logCompareProfiles(
+          compatibilityScore: _calculateCompatibilityScore(),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +91,10 @@ class _CompareScreenState extends State<CompareScreen> {
                             context,
                             profile: _profile1,
                             label: 'Profil 1',
-                            onSelect: (result) => setState(() => _profile1 = result),
+                            onSelect: (result) {
+                              setState(() => _profile1 = result);
+                              _logComparisonIfBothSelected(result, _profile2);
+                            },
                             isDark: isDark,
                           ),
                         ),
@@ -98,7 +119,10 @@ class _CompareScreenState extends State<CompareScreen> {
                             context,
                             profile: _profile2,
                             label: 'Profil 2',
-                            onSelect: (result) => setState(() => _profile2 = result),
+                            onSelect: (result) {
+                              setState(() => _profile2 = result);
+                              _logComparisonIfBothSelected(_profile1, result);
+                            },
                             isDark: isDark,
                           ),
                         ),

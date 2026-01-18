@@ -7,7 +7,9 @@ import '../l10n/app_localizations.dart';
 import '../providers/analysis_provider.dart';
 import '../providers/history_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
+import '../services/analytics_service.dart';
 import 'result_screen.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
@@ -17,6 +19,7 @@ import 'paywall_screen.dart';
 import '../providers/achievement_provider.dart';
 import '../models/achievement.dart';
 import '../widgets/loading_animation.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +31,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _instagramController = TextEditingController();
+  final AnalyticsService _analytics = AnalyticsService();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   bool _showInstagramInput = false;
@@ -45,6 +49,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
 
     context.read<AnalysisProvider>().fetchRemainingUses();
+
+    // Log screen view
+    _analytics.logScreenView('home_screen');
   }
 
   @override
@@ -175,13 +182,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     debugPrint('HomeScreen: Image picked: ${image?.path}');
     if (image != null && mounted) {
       final provider = context.read<AnalysisProvider>();
+      final settingsProvider = context.read<SettingsProvider>();
       final imageSource = source == ImageSource.camera ? 'camera' : 'gallery';
+
+      // Log analyze started
+      _analytics.logAnalyzeStarted(source: imageSource);
+
       debugPrint('HomeScreen: Starting image analysis...');
-      await provider.analyzeProfile(File(image.path));
+      await provider.analyzeProfile(
+        File(image.path),
+        roastMode: settingsProvider.roastModeEnabled,
+      );
 
       debugPrint('HomeScreen: After analysis - state=${provider.state}, result=${provider.result}, mounted=$mounted');
       if (mounted && provider.state == AnalysisState.success && provider.result != null) {
         debugPrint('HomeScreen: Analysis success! Processing...');
+
+        // Log analyze completed
+        _analytics.logAnalyzeCompleted(
+          source: imageSource,
+          vibeType: provider.result!.vibeType,
+        );
 
         try {
           // Use credit after successful analysis
@@ -237,12 +258,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       return;
     }
 
+    // Log analyze started
+    _analytics.logAnalyzeStarted(source: 'instagram');
+
     debugPrint('HomeScreen: Starting analysis...');
     HapticFeedback.lightImpact();
     final provider = context.read<AnalysisProvider>();
-    await provider.analyzeInstagram(url);
+    final settingsProvider = context.read<SettingsProvider>();
+    await provider.analyzeInstagram(
+      url,
+      roastMode: settingsProvider.roastModeEnabled,
+    );
 
     if (mounted && provider.state == AnalysisState.success && provider.result != null) {
+      // Log analyze completed
+      _analytics.logAnalyzeCompleted(
+        source: 'instagram',
+        vibeType: provider.result!.vibeType,
+      );
+
       // Use credit after successful analysis
       await _useCredit();
 
@@ -685,6 +719,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           },
         ),
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 

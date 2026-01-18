@@ -10,6 +10,9 @@ import 'package:path_provider/path_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/analysis_provider.dart';
 import '../services/sound_service.dart';
+import '../services/analytics_service.dart';
+import '../services/ad_service.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/vibe_card.dart';
 
@@ -24,6 +27,7 @@ class _ResultScreenState extends State<ResultScreen> {
   late ConfettiController _confettiController;
   final ScreenshotController _screenshotController = ScreenshotController();
   final SoundService _soundService = SoundService();
+  final AnalyticsService _analytics = AnalyticsService();
   int _selectedCategoryIndex = -1; // -1 means "All"
   int _currentStarterIndex = 0;
   final PageController _pageController = PageController();
@@ -41,10 +45,23 @@ class _ResultScreenState extends State<ResultScreen> {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
 
+    // Log screen view
+    _analytics.logScreenView('result_screen');
+
     // Start confetti and play success sound after a short delay
     Future.delayed(const Duration(milliseconds: 500), () {
       _confettiController.play();
       _soundService.play(SoundType.confetti);
+    });
+
+    // Show interstitial ad after 2 seconds for non-premium users
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        final authProvider = context.read<AuthProvider>();
+        if (!authProvider.isPremium) {
+          AdService().showInterstitialAd();
+        }
+      }
     });
   }
 
@@ -55,9 +72,12 @@ class _ResultScreenState extends State<ResultScreen> {
     super.dispose();
   }
 
-  void _copyToClipboard(BuildContext context, String text) {
+  void _copyToClipboard(BuildContext context, String text, {int? index}) {
     Clipboard.setData(ClipboardData(text: text));
     _soundService.play(SoundType.copy);
+
+    // Log analytics
+    _analytics.logStarterCopied(index: index);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -85,6 +105,9 @@ class _ResultScreenState extends State<ResultScreen> {
       final imagePath = '${directory.path}/vibe_card_${DateTime.now().millisecondsSinceEpoch}.png';
       final imageFile = File(imagePath);
       await imageFile.writeAsBytes(image);
+
+      // Log analytics
+      _analytics.logShareResult(method: 'image');
 
       await Share.shareXFiles(
         [XFile(imagePath)],
@@ -650,6 +673,9 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   void _shareResult(BuildContext context, result) {
+    // Log analytics
+    _analytics.logShareResult(method: 'text');
+
     final text = '''${result.vibeEmoji} ${result.vibeType}
 
 ${result.description}

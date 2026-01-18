@@ -20,15 +20,15 @@ class AnalysisProvider extends ChangeNotifier {
   String? get instagramUsername => _instagramUsername;
   int get remainingUses => _remainingUses;
 
-  Future<void> analyzeProfile(File imageFile) async {
-    debugPrint('AnalysisProvider: analyzeProfile started with file: ${imageFile.path}');
+  Future<void> analyzeProfile(File imageFile, {bool roastMode = true}) async {
+    debugPrint('AnalysisProvider: analyzeProfile started with file: ${imageFile.path}, roastMode: $roastMode');
     _state = AnalysisState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
       debugPrint('AnalysisProvider: Calling API for image analysis...');
-      _result = await _apiService.analyzeProfile(imageFile);
+      _result = await _apiService.analyzeProfile(imageFile, roastMode: roastMode);
       debugPrint('AnalysisProvider: Image analysis successful');
       _remainingUses = _remainingUses > 0 ? _remainingUses - 1 : 0;
       _state = AnalysisState.success;
@@ -45,8 +45,8 @@ class AnalysisProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> analyzeInstagram(String urlOrUsername) async {
-    debugPrint('AnalysisProvider: analyzeInstagram started with: $urlOrUsername');
+  Future<void> analyzeInstagram(String urlOrUsername, {bool roastMode = true}) async {
+    debugPrint('AnalysisProvider: analyzeInstagram started with: $urlOrUsername, roastMode: $roastMode');
     _state = AnalysisState.loading;
     _errorMessage = null;
     _instagramUsername = null;
@@ -54,7 +54,7 @@ class AnalysisProvider extends ChangeNotifier {
 
     try {
       debugPrint('AnalysisProvider: calling API...');
-      final response = await _apiService.analyzeInstagram(urlOrUsername);
+      final response = await _apiService.analyzeInstagram(urlOrUsername, roastMode: roastMode);
       debugPrint('AnalysisProvider: API response success=${response.success}, error=${response.error}');
 
       if (response.success && response.result != null) {

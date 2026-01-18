@@ -10,7 +10,11 @@ import 'providers/theme_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/achievement_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/settings_provider.dart';
 import 'services/sound_service.dart';
+import 'services/analytics_service.dart';
+import 'services/ad_service.dart';
+import 'services/purchase_service.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -31,6 +35,16 @@ void main() async {
     debugPrint('Firebase initialization error: $e');
   }
 
+  // Initialize analytics
+  AnalyticsService().init();
+  AnalyticsService().logAppOpen();
+
+  // Initialize AdMob
+  await AdService().init();
+
+  // Initialize RevenueCat
+  await PurchaseService().init();
+
   // Initialize sound service
   await SoundService().init();
 
@@ -49,6 +63,7 @@ class ProfileWhispererApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => HistoryProvider()),
         ChangeNotifierProvider(create: (_) => AchievementProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

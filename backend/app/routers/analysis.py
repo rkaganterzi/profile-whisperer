@@ -32,6 +32,7 @@ def build_result(result: dict) -> AnalysisResult:
 async def analyze_profile(
     image: UploadFile = File(...),
     language: str = "tr",
+    roast_mode: bool = True,
     settings: Settings = Depends(get_settings),
     ai_service: AIService = Depends(get_ai_service),
     rate_limiter: RateLimiter = Depends(get_rate_limiter),
@@ -56,7 +57,7 @@ async def analyze_profile(
 
     # Analyze with AI
     try:
-        result = await ai_service.analyze_profile(image_bytes, language)
+        result = await ai_service.analyze_profile(image_bytes, language, roast_mode=roast_mode)
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -140,7 +141,11 @@ async def analyze_instagram_profile(
 
     # Analyze with AI
     try:
-        result = await ai_service.analyze_profile(image_to_analyze, request.language)
+        result = await ai_service.analyze_profile(
+            image_to_analyze,
+            request.language,
+            roast_mode=request.roast_mode
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()

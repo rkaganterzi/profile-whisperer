@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/app_user.dart';
 import '../providers/auth_provider.dart';
+import '../services/analytics_service.dart';
+import '../services/purchase_service.dart';
 import '../theme/app_theme.dart';
 
 class PaywallScreen extends StatefulWidget {
@@ -17,6 +19,8 @@ class PaywallScreen extends StatefulWidget {
 class _PaywallScreenState extends State<PaywallScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final AnalyticsService _analytics = AnalyticsService();
+  final PurchaseService _purchaseService = PurchaseService();
   bool _isYearly = true;
   bool _isLoading = false;
 
@@ -28,6 +32,9 @@ class _PaywallScreenState extends State<PaywallScreen>
       vsync: this,
       initialIndex: widget.showCreditsTab ? 1 : 0,
     );
+
+    // Log screen view
+    _analytics.logScreenView('paywall_screen');
   }
 
   @override
@@ -234,6 +241,19 @@ class _PaywallScreenState extends State<PaywallScreen>
               color: isDark ? AppTheme.textGrayDark : AppTheme.textLight,
             ),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          // Restore purchases button
+          TextButton(
+            onPressed: _isLoading ? null : _restorePurchases,
+            child: Text(
+              'Satın alımları geri yükle',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? AppTheme.textGrayDark : AppTheme.textGray,
+                decoration: TextDecoration.underline,
+              ),
+            ),
           ),
         ],
       ),
@@ -550,66 +570,222 @@ class _PaywallScreenState extends State<PaywallScreen>
   }
 
   Future<void> _purchasePremium() async {
+    final productId = _isYearly
+        ? PurchaseService.premiumYearly
+        : PurchaseService.premiumMonthly;
+
     HapticFeedback.lightImpact();
     setState(() => _isLoading = true);
 
-    // TODO: Implement RevenueCat purchase
-    // For now, simulate purchase
-    await Future.delayed(const Duration(seconds: 2));
+    // Try RevenueCat purchase first
+    if (_purchaseService.isInitialized) {
+      final result = await _purchaseService.purchaseProductById(productId);
 
-    final authProvider = context.read<AuthProvider>();
-    final until = _isYearly
-        ? DateTime.now().add(const Duration(days: 365))
-        : DateTime.now().add(const Duration(days: 30));
+      setState(() => _isLoading = false);
 
-    final success = await authProvider.setPremium(until);
+      if (result.success && mounted) {
+        // Update local auth state
+        final authProvider = context.read<AuthProvider>();
+        final until = _isYearly
+            ? DateTime.now().add(const Duration(days: 365))
+            : DateTime.now().add(const Duration(days: 30));
+        await authProvider.setPremium(until);
 
-    setState(() => _isLoading = false);
-
-    if (success && mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Text('👑', style: TextStyle(fontSize: 20)),
-              SizedBox(width: 12),
-              Text('Premium aktif! Hoş geldin! 🎉'),
-            ],
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Text('👑', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 12),
+                Text('Premium aktif! Hoş geldin! 🎉'),
+              ],
+            ),
+            backgroundColor: AppTheme.primaryPink,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          backgroundColor: AppTheme.primaryPink,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+        );
+      } else if (result.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error!),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
+      // Fallback to mock purchase if RevenueCat not initialized
+      _analytics.logPurchaseInitiated(productType: productId);
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      final authProvider = context.read<AuthProvider>();
+      final until = _isYearly
+          ? DateTime.now().add(const Duration(days: 365))
+          : DateTime.now().add(const Duration(days: 30));
+
+      final success = await authProvider.setPremium(until);
+
+      setState(() => _isLoading = false);
+
+      if (success && mounted) {
+        _analytics.logPurchaseCompleted(
+          productType: productId,
+          price: _isYearly
+              ? SubscriptionPlan.premium.yearlyPrice
+              : SubscriptionPlan.premium.monthlyPrice,
+          currency: 'TRY',
+        );
+        _analytics.setIsPremium(true);
+
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Text('👑', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 12),
+                Text('Premium aktif! Hoş geldin! 🎉'),
+              ],
+            ),
+            backgroundColor: AppTheme.primaryPink,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     }
   }
 
   Future<void> _purchaseCredits(CreditPackage package) async {
+    final productId = 'credits_${package.credits}';
+
     HapticFeedback.lightImpact();
     setState(() => _isLoading = true);
 
-    // TODO: Implement RevenueCat purchase
-    // For now, simulate purchase
-    await Future.delayed(const Duration(seconds: 2));
+    // Try RevenueCat purchase first
+    if (_purchaseService.isInitialized) {
+      final result = await _purchaseService.purchaseProductById(productId);
 
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.addCredits(package.credits);
+      setState(() => _isLoading = false);
+
+      if (result.success && mounted) {
+        // Update local auth state
+        final authProvider = context.read<AuthProvider>();
+        await authProvider.addCredits(package.credits);
+
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Text('⚡', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 12),
+                Text('${package.credits} kredi eklendi! 🎉'),
+              ],
+            ),
+            backgroundColor: AppTheme.primaryPink,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      } else if (result.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error!),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
+      // Fallback to mock purchase if RevenueCat not initialized
+      _analytics.logPurchaseInitiated(productType: productId);
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.addCredits(package.credits);
+
+      setState(() => _isLoading = false);
+
+      if (success && mounted) {
+        _analytics.logPurchaseCompleted(
+          productType: productId,
+          price: package.price,
+          currency: 'TRY',
+        );
+
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Text('⚡', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 12),
+                Text('${package.credits} kredi eklendi! 🎉'),
+              ],
+            ),
+            backgroundColor: AppTheme.primaryPink,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    HapticFeedback.lightImpact();
+    setState(() => _isLoading = true);
+
+    final result = await _purchaseService.restorePurchases();
 
     setState(() => _isLoading = false);
 
-    if (success && mounted) {
-      Navigator.pop(context);
+    if (!mounted) return;
+
+    if (result.success) {
+      if (result.hasPremium) {
+        // Update local auth state
+        final authProvider = context.read<AuthProvider>();
+        await authProvider.setPremium(
+          DateTime.now().add(const Duration(days: 365)),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Text('👑', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 12),
+                Text('Premium geri yüklendi!'),
+              ],
+            ),
+            backgroundColor: AppTheme.primaryPink,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Geri yüklenecek satın alma bulunamadı'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
-            children: [
-              const Text('⚡', style: TextStyle(fontSize: 20)),
-              const SizedBox(width: 12),
-              Text('${package.credits} kredi eklendi! 🎉'),
-            ],
-          ),
-          backgroundColor: AppTheme.primaryPink,
+          content: Text(result.error ?? 'Geri yükleme başarısız'),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

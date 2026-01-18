@@ -40,10 +40,14 @@ class ApiService {
   // static const String _baseUrl = 'http://10.0.2.2:8000/api/v1';  // Android emulator
   // static const String _baseUrl = 'http://localhost:8000/api/v1'; // iOS simulator / Web
 
-  Future<AnalysisResult> analyzeProfile(File imageFile, {String language = 'tr'}) async {
-    final uri = Uri.parse('$_baseUrl/analyze?language=$language');
+  Future<AnalysisResult> analyzeProfile(
+    File imageFile, {
+    String language = 'tr',
+    bool roastMode = true,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/analyze?language=$language&roast_mode=$roastMode');
     debugPrint('ApiService: Uploading image to $uri');
-    debugPrint('ApiService: File path: ${imageFile.path}');
+    debugPrint('ApiService: File path: ${imageFile.path}, roastMode: $roastMode');
 
     try {
       final request = http.MultipartRequest('POST', uri)
@@ -73,9 +77,13 @@ class ApiService {
     }
   }
 
-  Future<InstagramAnalysisResult> analyzeInstagram(String urlOrUsername, {String language = 'tr'}) async {
+  Future<InstagramAnalysisResult> analyzeInstagram(
+    String urlOrUsername, {
+    String language = 'tr',
+    bool roastMode = true,
+  }) async {
     final uri = Uri.parse('$_baseUrl/analyze-instagram');
-    debugPrint('ApiService: POST $uri with url=$urlOrUsername');
+    debugPrint('ApiService: POST $uri with url=$urlOrUsername, roastMode=$roastMode');
 
     try {
       final response = await http.post(
@@ -84,6 +92,7 @@ class ApiService {
         body: jsonEncode({
           'url': urlOrUsername,
           'language': language,
+          'roast_mode': roastMode,
         }),
       );
       debugPrint('ApiService: Response status=${response.statusCode}');

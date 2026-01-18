@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/history_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/sound_service.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -14,10 +16,18 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final SoundService _soundService = SoundService();
+  final AnalyticsService _analytics = AnalyticsService();
+
+  @override
+  void initState() {
+    super.initState();
+    _analytics.logScreenView('settings_screen');
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final settingsProvider = context.watch<SettingsProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -63,6 +73,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 isSelected: themeProvider.themeMode == ThemeMode.dark,
                 onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
               ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Analysis Mode Section
+          _buildSectionTitle(context, 'Analiz Modu'),
+          const SizedBox(height: 12),
+          _buildCard(
+            context,
+            children: [
+              _buildSwitchTile(
+                context,
+                icon: Icons.local_fire_department_rounded,
+                title: 'Roast Modu',
+                subtitle: 'Acımasız ve komik analizler',
+                value: settingsProvider.roastModeEnabled,
+                onChanged: (value) async {
+                  await settingsProvider.setRoastMode(value);
+                },
+              ),
+              if (!settingsProvider.roastModeEnabled) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 18,
+                          color: Colors.blue[700],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Roast modu kapalıyken daha nazik analizler alırsın',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
 
