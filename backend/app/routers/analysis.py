@@ -260,15 +260,19 @@ async def analyze_instagram_deep(
             username=profile.username
         )
 
-    # Check minimum post requirement
-    if len(profile.post_images) < 3:
+    # Check minimum post requirement (at least 1 image needed)
+    if len(profile.post_images) < 1:
         return DeepAnalysisResponse(
             success=False,
-            error=f"Derin analiz için en az 3 post gerekli. Bu profilde {len(profile.post_images)} post bulundu.",
+            error=f"Analiz için görsel bulunamadı. Instagram profili erişilemez olabilir.",
             error_code="insufficient_posts",
             username=profile.username,
             post_count_analyzed=len(profile.post_images)
         )
+
+    # Warn if less than 3 posts (but continue)
+    if len(profile.post_images) < 3:
+        print(f"[Warning] Only {len(profile.post_images)} images found for deep analysis")
 
     # Perform deep analysis
     try:

@@ -121,18 +121,36 @@ class InstagramScraper:
             (self._try_html_scrape_deep, "html_scrape_deep"),
         ]
 
+        best_result = None
+        best_count = 0
+
         for method, name in methods:
             try:
                 print(f"[Instagram] Trying {name}...")
                 result = await method(username, max_posts)
-                if result and not result.error and len(result.post_images) >= 3:
-                    print(f"[Instagram] Deep fetch success with {name}: {len(result.post_images)} posts")
-                    return result
+                if result and not result.error:
+                    post_count = len(result.post_images)
+                    print(f"[Instagram] {name} returned {post_count} posts")
+
+                    # If we get 3+ posts, use it immediately
+                    if post_count >= 3:
+                        print(f"[Instagram] Deep fetch success with {name}: {post_count} posts")
+                        return result
+
+                    # Otherwise, keep track of the best result
+                    if post_count > best_count:
+                        best_result = result
+                        best_count = post_count
                 elif result and result.error:
                     print(f"[Instagram] {name} failed: {result.error}")
             except Exception as e:
                 print(f"[Instagram] {name} error: {e}")
                 continue
+
+        # If we have at least 1 image, use it
+        if best_result and best_count >= 1:
+            print(f"[Instagram] Using best result with {best_count} posts")
+            return best_result
 
         # Fallback to regular fetch if deep fetch fails
         print("[Instagram] Deep fetch failed, falling back to regular fetch")
@@ -264,6 +282,13 @@ class InstagramScraper:
 
                 html = response.text
 
+                # Debug: Log HTML length and check for login redirect
+                print(f"[Instagram] HTML length: {len(html)} chars")
+                if 'login' in html.lower()[:1000]:
+                    print("[Instagram] Page requires login")
+                if 'not-logged-in' in html:
+                    print("[Instagram] User not logged in detected")
+
                 # Try to extract user_id from various patterns
                 user_id = None
                 id_patterns = [
@@ -299,6 +324,9 @@ class InstagramScraper:
                 og_image = re.search(r'<meta property="og:image" content="([^"]+)"', html)
                 if og_image:
                     profile_pic_url = og_image.group(1)
+                    print(f"[Instagram] Found og:image: {profile_pic_url[:80]}...")
+                else:
+                    print("[Instagram] No og:image found in HTML")
 
                 og_desc = re.search(r'<meta property="og:description" content="([^"]+)"', html)
                 if og_desc:
@@ -331,22 +359,37 @@ class InstagramScraper:
                 if 'This Account is Private' in html or '"is_private":true' in html:
                     is_private = True
 
-                # Find all image URLs
+                # Find all image URLs - try multiple patterns
                 image_urls = []
 
-                # Pattern for display URLs in JSON
+                # Try to find embedded JSON data first
+                json_patterns = [
+                    r'<script type="application/ld\+json"[^>]*>(\{[^<]+\})</script>',
+                    r'"xdt_api__v1__feed__user_timeline_graphql_connection":\s*(\{[^}]+\})',
+                    r'edges":\s*\[(.*?)\]',
+                ]
+
+                # Pattern for display URLs in JSON and HTML
                 display_patterns = [
                     r'"display_url"\s*:\s*"([^"]+)"',
-                    r'"src"\s*:\s*"(https://[^"]*cdninstagram[^"]*)"',
-                    r'"display_resources".*?"src"\s*:\s*"([^"]+)"',
+                    r'"thumbnail_src"\s*:\s*"([^"]+)"',
+                    r'"src"\s*:\s*"(https://[^"]*(?:cdninstagram|fbcdn)[^"]*\.jpg[^"]*)"',
+                    r'"url"\s*:\s*"(https://[^"]*(?:cdninstagram|fbcdn)[^"]*\.jpg[^"]*)"',
+                    r'content="(https://[^"]*(?:cdninstagram|fbcdn)[^"]*\.jpg[^"]*)"',
+                    r'"image"\s*:\s*"(https://[^"]+)"',
+                    r'"contentUrl"\s*:\s*"(https://[^"]+)"',
                 ]
 
                 for pattern in display_patterns:
                     matches = re.findall(pattern, html)
                     for match in matches:
-                        clean_url = match.replace('\\u0026', '&').replace('\\/', '/')
-                        if clean_url not in image_urls and 'cdninstagram' in clean_url:
-                            image_urls.append(clean_url)
+                        clean_url = match.replace('\\u0026', '&').replace('\\/', '/').replace('&amp;', '&')
+                        # Filter for actual Instagram image URLs
+                        if clean_url not in image_urls and ('cdninstagram' in clean_url or 'fbcdn' in clean_url or 'instagram' in clean_url):
+                            if '.jpg' in clean_url or '.png' in clean_url or 'scontent' in clean_url:
+                                image_urls.append(clean_url)
+
+                print(f"[Instagram] GraphQL found {len(image_urls)} image URLs")
 
                 # Also try to find caption data
                 caption_pattern = r'"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"([^"]+)"\}\}\]\}'
@@ -389,8 +432,25 @@ class InstagramScraper:
 
                 print(f"[Instagram] GraphQL deep: {len(post_images)} posts")
 
-                if not profile_pic_bytes and len(post_images) < 3:
+                # If we have profile pic but no posts, use profile pic for analysis
+                if profile_pic_bytes and len(post_images) == 0:
+                    print(f"[Instagram] Using profile pic as only image for analysis")
+                    post_images.append(profile_pic_bytes)
+                    post_captions.append(bio or "")
+                    post_like_counts.append(0)
+                    post_comment_counts.append(0)
+                # If we have profile pic and some posts but less than 3, add profile pic
+                elif profile_pic_bytes and len(post_images) < 3:
+                    print(f"[Instagram] Adding profile pic to supplement {len(post_images)} posts")
+                    post_images.insert(0, profile_pic_bytes)
+                    post_captions.insert(0, bio or "")
+                    post_like_counts.insert(0, 0)
+                    post_comment_counts.insert(0, 0)
+
+                if len(post_images) < 1:
                     return self._error_profile(username, "insufficient_data")
+
+                print(f"[Instagram] Final image count for analysis: {len(post_images)}")
 
                 return InstagramProfile(
                     username=username,
@@ -477,6 +537,9 @@ class InstagramScraper:
                 og_image = re.search(r'<meta property="og:image" content="([^"]+)"', html)
                 if og_image:
                     profile_pic_url = og_image.group(1)
+                    print(f"[Instagram] HTML scrape found og:image: {profile_pic_url[:80]}...")
+                else:
+                    print("[Instagram] HTML scrape: No og:image found")
 
                 # OG title for name
                 og_title = re.search(r'<meta property="og:title" content="([^"]+)"', html)
@@ -488,21 +551,44 @@ class InstagramScraper:
 
                 # Look for image URLs in the HTML
                 image_urls = []
-                # Find Instagram CDN image URLs
+
+                # Find Instagram CDN image URLs with multiple patterns
                 cdn_patterns = [
                     r'"display_url"\s*:\s*"([^"]+)"',
-                    r'"src"\s*:\s*"(https://[^"]*instagram[^"]*\.jpg[^"]*)"',
                     r'"thumbnail_src"\s*:\s*"([^"]+)"',
+                    r'"src"\s*:\s*"(https://[^"]*(?:cdninstagram|fbcdn|scontent)[^"]*)"',
+                    r'"url"\s*:\s*"(https://[^"]*(?:cdninstagram|fbcdn|scontent)[^"]*)"',
+                    r'content="(https://[^"]*(?:cdninstagram|fbcdn|scontent)[^"]*\.jpg[^"]*)"',
+                    r'"image"\s*:\s*\{"url"\s*:\s*"([^"]+)"',
+                    r'"contentUrl"\s*:\s*"([^"]+)"',
+                    r'srcset="([^"]+(?:cdninstagram|fbcdn|scontent)[^"]*)"',
                 ]
 
                 for pattern in cdn_patterns:
                     matches = re.findall(pattern, html)
                     for match in matches:
-                        clean_url = match.replace('\\u0026', '&').replace('\\/', '/')
-                        if 'instagram' in clean_url and clean_url not in image_urls:
-                            image_urls.append(clean_url)
+                        clean_url = match.replace('\\u0026', '&').replace('\\/', '/').replace('&amp;', '&')
+                        # Take first URL if srcset
+                        if ' ' in clean_url:
+                            clean_url = clean_url.split(' ')[0]
+                        if clean_url not in image_urls:
+                            if 'cdninstagram' in clean_url or 'fbcdn' in clean_url or 'scontent' in clean_url:
+                                image_urls.append(clean_url)
 
+                print(f"[Instagram] HTML scrape found {len(image_urls)} image URLs")
+
+                # Debug: log a sample of the HTML to see what we're working with
+                if len(image_urls) == 0:
+                    # Look for any URLs that might be images
+                    all_urls = re.findall(r'https://[^"<>\s]+\.(?:jpg|jpeg|png|webp)', html)
+                    print(f"[Instagram] Found {len(all_urls)} potential image URLs in HTML")
+                    for url in all_urls[:5]:
+                        print(f"[Instagram] Sample URL: {url[:100]}...")
+                    image_urls = all_urls[:max_posts]
+
+                # Continue even if no image_urls - we might have profile_pic_url
                 if not profile_pic_url and not image_urls:
+                    print("[Instagram] HTML scrape: No images found at all")
                     return self._error_profile(username, "no_images_found")
 
                 # Download images
@@ -531,6 +617,22 @@ class InstagramScraper:
                             break
 
                 print(f"[Instagram] HTML scrape: {len(post_images)} posts found")
+
+                # If we have profile pic but no posts, use profile pic
+                if profile_pic_bytes and len(post_images) == 0:
+                    print(f"[Instagram] HTML scrape: Using profile pic as only image")
+                    post_images.append(profile_pic_bytes)
+                    post_captions.append(bio or "")
+                    post_like_counts.append(0)
+                    post_comment_counts.append(0)
+                elif profile_pic_bytes and len(post_images) < 3:
+                    print(f"[Instagram] HTML scrape: Adding profile pic to {len(post_images)} posts")
+                    post_images.insert(0, profile_pic_bytes)
+                    post_captions.insert(0, bio or "")
+                    post_like_counts.insert(0, 0)
+                    post_comment_counts.insert(0, 0)
+
+                print(f"[Instagram] HTML scrape final count: {len(post_images)} images")
 
                 return InstagramProfile(
                     username=username,
@@ -958,13 +1060,21 @@ class InstagramScraper:
 
         try:
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "User-Agent": random.choice(USER_AGENTS),
                 "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
                 "Referer": "https://www.instagram.com/",
+                "Accept-Language": "en-US,en;q=0.9",
             }
-            response = await client.get(url, headers=headers, timeout=10.0)
-            if response.status_code == 200 and len(response.content) > 1000:
-                return response.content
+            response = await client.get(url, headers=headers, timeout=15.0)
+            if response.status_code == 200:
+                content_len = len(response.content)
+                if content_len > 1000:
+                    print(f"[Instagram] Downloaded image: {content_len} bytes")
+                    return response.content
+                else:
+                    print(f"[Instagram] Image too small: {content_len} bytes")
+            else:
+                print(f"[Instagram] Image download status: {response.status_code}")
         except Exception as e:
             print(f"[Instagram] Image download failed: {e}")
 
