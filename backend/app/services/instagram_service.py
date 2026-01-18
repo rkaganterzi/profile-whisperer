@@ -116,6 +116,8 @@ class InstagramScraper:
         # Try multiple methods for deep fetch
         methods = [
             (self._try_web_profile_info_deep, "web_profile_info_deep"),
+            (self._try_mobile_api_deep, "mobile_api_deep"),
+            (self._try_graphql_deep, "graphql_deep"),
             (self._try_html_scrape_deep, "html_scrape_deep"),
         ]
 
@@ -136,6 +138,280 @@ class InstagramScraper:
         print("[Instagram] Deep fetch failed, falling back to regular fetch")
         return await self.fetch_profile(url_or_username)
 
+    async def _try_mobile_api_deep(self, username: str, max_posts: int = 9) -> Optional[InstagramProfile]:
+        """Try Instagram Mobile API for deep analysis."""
+        url = f"https://i.instagram.com/api/v1/users/web_profile_info/?username={username}"
+
+        user_agent = "Instagram 275.0.0.27.98 Android (33/13; 420dpi; 1080x2400; samsung; SM-G991B; o1s; exynos2100; en_US; 458229237)"
+
+        headers = {
+            "User-Agent": user_agent,
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
+            "X-IG-App-ID": "567067343352427",
+            "X-IG-Device-ID": "android-" + ''.join(random.choices('0123456789abcdef', k=16)),
+            "X-IG-Android-ID": "android-" + ''.join(random.choices('0123456789abcdef', k=16)),
+            "X-FB-HTTP-Engine": "Liger",
+            "Connection": "keep-alive",
+        }
+
+        await asyncio.sleep(random.uniform(0.5, 1.5))
+
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            try:
+                response = await client.get(url, headers=headers)
+                print(f"[Instagram] Mobile API response: {response.status_code}")
+
+                if response.status_code == 429:
+                    print("[Instagram] Mobile API rate limited")
+                    return None
+
+                if response.status_code != 200:
+                    return None
+
+                data = response.json()
+                user = data.get("data", {}).get("user")
+
+                if not user:
+                    return None
+
+                profile_pic_url = user.get("profile_pic_url_hd") or user.get("profile_pic_url")
+                is_private = user.get("is_private", False)
+
+                # Download profile pic
+                await asyncio.sleep(random.uniform(0.2, 0.5))
+                profile_pic_bytes = await self._download_image(client, profile_pic_url)
+
+                post_images = []
+                post_captions = []
+                post_like_counts = []
+                post_comment_counts = []
+
+                if not is_private:
+                    edges = user.get("edge_owner_to_timeline_media", {}).get("edges", [])
+                    for i, edge in enumerate(edges[:max_posts]):
+                        node = edge.get("node", {})
+                        img_url = node.get("display_url")
+
+                        if img_url:
+                            if i > 0:
+                                await asyncio.sleep(random.uniform(0.2, 0.4))
+
+                            img_bytes = await self._download_image(client, img_url)
+                            if img_bytes:
+                                post_images.append(img_bytes)
+
+                                caption_edges = node.get("edge_media_to_caption", {}).get("edges", [])
+                                caption = caption_edges[0].get("node", {}).get("text", "") if caption_edges else ""
+                                post_captions.append(caption)
+
+                                like_count = node.get("edge_liked_by", {}).get("count", 0) or node.get("edge_media_preview_like", {}).get("count", 0)
+                                post_like_counts.append(like_count)
+
+                                comment_count = node.get("edge_media_to_comment", {}).get("count", 0) or node.get("edge_media_preview_comment", {}).get("count", 0)
+                                post_comment_counts.append(comment_count)
+
+                print(f"[Instagram] Mobile API deep: {len(post_images)} posts")
+
+                if len(post_images) < 3:
+                    return None
+
+                return InstagramProfile(
+                    username=username,
+                    full_name=user.get("full_name"),
+                    bio=user.get("biography"),
+                    profile_pic_url=profile_pic_url,
+                    profile_pic_bytes=profile_pic_bytes,
+                    post_images=post_images,
+                    follower_count=user.get("edge_followed_by", {}).get("count"),
+                    following_count=user.get("edge_follow", {}).get("count"),
+                    post_count=user.get("edge_owner_to_timeline_media", {}).get("count"),
+                    is_private=is_private,
+                    error=None,
+                    post_captions=post_captions,
+                    post_like_counts=post_like_counts,
+                    post_comment_counts=post_comment_counts,
+                )
+            except Exception as e:
+                print(f"[Instagram] Mobile API exception: {e}")
+                return None
+
+    async def _try_graphql_deep(self, username: str, max_posts: int = 9) -> Optional[InstagramProfile]:
+        """Try Instagram GraphQL API for deep analysis."""
+        # First get user ID from profile page
+        profile_url = f"https://www.instagram.com/{username}/"
+        user_agent = random.choice(USER_AGENTS)
+
+        headers = {
+            "User-Agent": user_agent,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+        }
+
+        await asyncio.sleep(random.uniform(0.5, 1.0))
+
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            try:
+                # Get profile page to extract user_id
+                response = await client.get(profile_url, headers=headers)
+                print(f"[Instagram] GraphQL profile page: {response.status_code}")
+
+                if response.status_code != 200:
+                    return None
+
+                html = response.text
+
+                # Try to extract user_id from various patterns
+                user_id = None
+                id_patterns = [
+                    r'"user_id"\s*:\s*"(\d+)"',
+                    r'"profilePage_(\d+)"',
+                    r'"id"\s*:\s*"(\d+)".*?"username"\s*:\s*"' + username + '"',
+                    r'logging_page_id["\']?\s*:\s*["\']?profilePage_(\d+)',
+                ]
+
+                for pattern in id_patterns:
+                    match = re.search(pattern, html)
+                    if match:
+                        user_id = match.group(1)
+                        print(f"[Instagram] Found user_id: {user_id}")
+                        break
+
+                # Extract data from shared data in page
+                shared_data_match = re.search(
+                    r'<script type="application/json" data-sjs>(\{.*?"require".*?\})</script>',
+                    html,
+                    re.DOTALL
+                )
+
+                profile_pic_url = None
+                bio = None
+                full_name = None
+                is_private = False
+                follower_count = None
+                following_count = None
+                post_count = None
+
+                # Extract from meta tags as backup
+                og_image = re.search(r'<meta property="og:image" content="([^"]+)"', html)
+                if og_image:
+                    profile_pic_url = og_image.group(1)
+
+                og_desc = re.search(r'<meta property="og:description" content="([^"]+)"', html)
+                if og_desc:
+                    desc = og_desc.group(1)
+                    # Parse "X Followers, Y Following, Z Posts - BIO"
+                    stats_match = re.search(r'([\d,KMB.]+)\s*Follower', desc, re.IGNORECASE)
+                    if stats_match:
+                        follower_str = stats_match.group(1).replace(',', '')
+                        if 'K' in follower_str.upper():
+                            follower_count = int(float(follower_str.upper().replace('K', '')) * 1000)
+                        elif 'M' in follower_str.upper():
+                            follower_count = int(float(follower_str.upper().replace('M', '')) * 1000000)
+                        else:
+                            try:
+                                follower_count = int(follower_str)
+                            except:
+                                pass
+                    bio_match = re.search(r'Posts?\s*[-–]\s*(.+)$', desc)
+                    if bio_match:
+                        bio = bio_match.group(1).strip()
+
+                og_title = re.search(r'<meta property="og:title" content="([^"]+)"', html)
+                if og_title:
+                    title = og_title.group(1)
+                    name_match = re.search(r'^([^(@]+)', title)
+                    if name_match:
+                        full_name = name_match.group(1).strip()
+
+                # Check if private
+                if 'This Account is Private' in html or '"is_private":true' in html:
+                    is_private = True
+
+                # Find all image URLs
+                image_urls = []
+
+                # Pattern for display URLs in JSON
+                display_patterns = [
+                    r'"display_url"\s*:\s*"([^"]+)"',
+                    r'"src"\s*:\s*"(https://[^"]*cdninstagram[^"]*)"',
+                    r'"display_resources".*?"src"\s*:\s*"([^"]+)"',
+                ]
+
+                for pattern in display_patterns:
+                    matches = re.findall(pattern, html)
+                    for match in matches:
+                        clean_url = match.replace('\\u0026', '&').replace('\\/', '/')
+                        if clean_url not in image_urls and 'cdninstagram' in clean_url:
+                            image_urls.append(clean_url)
+
+                # Also try to find caption data
+                caption_pattern = r'"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"([^"]+)"\}\}\]\}'
+                captions_found = re.findall(caption_pattern, html)
+
+                # Download profile pic
+                profile_pic_bytes = None
+                if profile_pic_url:
+                    await asyncio.sleep(random.uniform(0.2, 0.5))
+                    profile_pic_bytes = await self._download_image(client, profile_pic_url)
+
+                # Download post images
+                post_images = []
+                post_captions = []
+                post_like_counts = []
+                post_comment_counts = []
+
+                # Remove duplicates and profile pic from images
+                unique_images = []
+                for url in image_urls:
+                    if url not in unique_images:
+                        unique_images.append(url)
+
+                for i, img_url in enumerate(unique_images[:max_posts]):
+                    if i > 0:
+                        await asyncio.sleep(random.uniform(0.2, 0.4))
+
+                    img_bytes = await self._download_image(client, img_url)
+                    if img_bytes and len(img_bytes) > 10000:  # Skip small images
+                        post_images.append(img_bytes)
+
+                        # Add caption if available
+                        if i < len(captions_found):
+                            post_captions.append(captions_found[i])
+                        else:
+                            post_captions.append("")
+
+                        post_like_counts.append(0)
+                        post_comment_counts.append(0)
+
+                print(f"[Instagram] GraphQL deep: {len(post_images)} posts")
+
+                if not profile_pic_bytes and len(post_images) < 3:
+                    return self._error_profile(username, "insufficient_data")
+
+                return InstagramProfile(
+                    username=username,
+                    full_name=full_name,
+                    bio=bio,
+                    profile_pic_url=profile_pic_url,
+                    profile_pic_bytes=profile_pic_bytes,
+                    post_images=post_images,
+                    follower_count=follower_count,
+                    following_count=following_count,
+                    post_count=post_count,
+                    is_private=is_private,
+                    error=None,
+                    post_captions=post_captions,
+                    post_like_counts=post_like_counts,
+                    post_comment_counts=post_comment_counts,
+                )
+            except Exception as e:
+                print(f"[Instagram] GraphQL deep exception: {e}")
+                return None
+
     async def _try_html_scrape_deep(self, username: str, max_posts: int = 9) -> Optional[InstagramProfile]:
         """Try scraping Instagram HTML page for deep analysis data."""
         url = f"https://www.instagram.com/{username}/"
@@ -153,6 +429,7 @@ class InstagramScraper:
             "Sec-Fetch-Site": "none",
             "Sec-Fetch-User": "?1",
             "Cache-Control": "max-age=0",
+            "Cookie": "ig_did=; ig_nrcb=1; csrftoken=; mid=;",  # Empty cookie structure
         }
 
         await asyncio.sleep(random.uniform(0.5, 1.5))
