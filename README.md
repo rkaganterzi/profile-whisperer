@@ -1,53 +1,90 @@
-# Profile Whisperer
+# HuysuzApp
 
-> **"Stalk. Understand. Slide."** - Your AI-Powered Rizz Assistant
+> **"Kesfet. Coz. Fethet."** - AI Destekli Instagram Profil Analizcisi
 
-AI-powered Instagram profile analyzer that helps you craft the perfect conversation starters.
+Instagram profillerini yapay zeka ile analiz eden, eglenceli kisilik tespitleri ve sohbet baslangici onerileri sunan mobil uygulama.
 
-## Features
+## Ozellikler
 
-- Upload any Instagram profile screenshot
-- Get a fun "Vibe Type" personality analysis
-- Receive 3 personalized conversation starters
-- Share your results on stories
-- Available in English and Turkish
+### Temel Ozellikler
+- Instagram profil linki veya screenshot ile analiz
+- AI destekli "Vibe Type" kisilik analizi
+- Kisisellestirilmis sohbet baslangici onerileri (5 adet)
+- Red Flags / Green Flags tespiti
+- Eglenceli "Roast" yorumlari
+- Sonuclari paylasma
 
-## Tech Stack
+### Derin Analiz (Deep Analysis)
+- Coklu post analizi
+- Profil arketipi belirleme
+- Engagement analizi
+- Iliski tahmini
+- Uyari isaretleri
 
-| Layer | Technology |
-|-------|------------|
-| Mobile | Flutter |
+### Monetizasyon Sistemi
+- Free/Premium model
+- Gunluk 2 ucretsiz analiz
+- Rewarded Ads (+1 kredi)
+- Paylasim bonusu (+1 kredi)
+- Streak sistemi (3. ve 7. gun bonuslari)
+- Premium ile sinirsiz erisim
+
+### Diger
+- Turkce / Ingilizce dil destegi
+- Tarama gecmisi
+- Basarim sistemi
+- Karanlik tema
+
+## Teknoloji
+
+| Katman | Teknoloji |
+|--------|-----------|
+| Mobil | Flutter |
 | Backend | Python FastAPI |
-| AI | Claude API (Haiku) |
-| Database | Supabase (PostgreSQL) |
-| Hosting | Railway |
+| AI | Claude API |
+| Auth & DB | Firebase |
+| Odeme | RevenueCat |
+| Reklam | Google AdMob |
+| Analytics | Firebase Analytics |
 
-## Project Structure
+## Proje Yapisi
 
 ```
 whisperer/
-├── mobile/         # Flutter app
-├── backend/        # FastAPI server
-├── bridge/         # Claude Code Bridge (development)
-└── docs/           # Documentation
+├── mobile/           # Flutter uygulamasi
+│   ├── lib/
+│   │   ├── models/       # Veri modelleri
+│   │   ├── providers/    # State yonetimi
+│   │   ├── screens/      # Ekranlar
+│   │   ├── services/     # API servisleri
+│   │   ├── widgets/      # UI bileşenleri
+│   │   └── theme/        # Tema ve renkler
+│   └── android/ios/      # Platform dosyalari
+├── backend/          # FastAPI sunucusu
+│   └── app/
+│       ├── api/          # API endpointleri
+│       ├── services/     # Is mantigi
+│       └── prompts/      # AI promptlari
+└── bridge/           # Gelistirme icin Claude Bridge
 ```
 
-## Development Setup
+## Kurulum
 
-### Prerequisites
-
-- Flutter SDK
+### Gereksinimler
+- Flutter SDK 3.x
 - Python 3.11+
-- Claude Code (for AI during development)
+- Firebase projesi
+- AdMob hesabi
+- RevenueCat hesabi
 
 ### Backend
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env      # API anahtarlarini duzenle
 python run.py
 ```
 
@@ -59,17 +96,33 @@ flutter pub get
 flutter run
 ```
 
-## Claude Code Bridge
+### APK Olusturma
 
-During development, we use Claude Code as a free AI engine:
+```bash
+cd mobile
+flutter build apk --release
+# APK: build/app/outputs/flutter-apk/app-release.apk
+```
 
-1. Backend saves requests to `bridge/requests/`
-2. You (Claude Code) process them manually
-3. Results are saved to `bridge/responses/`
-4. Backend returns results to the app
+## AdMob Yapilandirmasi
 
-See `bridge/README.md` for details.
+| Reklam Turu | Konum |
+|-------------|-------|
+| Banner | Ana ekran |
+| Interstitial | Sonuc ekrani |
+| Rewarded | Kredi kazanma |
 
-## License
+## Guvenlik ve Yasal
 
-MIT
+- Kullanim Sartlari ekrani (ilk acilista)
+- Tum paylasimlar disclaimer iceriyor
+- "Eglence amacli AI tahmini" uyarisi
+- KVKK/GDPR uyumlu veri isleme
+
+## Lisans
+
+MIT License
+
+---
+
+**HuysuzApp** - Profil analizi hic bu kadar eglenceli olmamisti!

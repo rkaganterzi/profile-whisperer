@@ -53,3 +53,6 @@ bridge/responses/*
 *.aab
 *.ipa
 dist/
+
+# Claude Code
+.claude/
