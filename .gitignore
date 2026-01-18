@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+.pub/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# Flutter
+mobile/build/
+mobile/.dart_tool/
+mobile/.packages
+mobile/pubspec.lock
+mobile/android/.gradle/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv/
+ENV/
+
+# Environment files
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Bridge - keep structure but ignore content
+bridge/requests/*
+!bridge/requests/.gitkeep
+bridge/responses/*
+!bridge/responses/.gitkeep
+
+# Build outputs
+*.apk
+*.aab
+*.ipa
+dist/

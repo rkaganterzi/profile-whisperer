@@ -1,0 +1,31 @@
+{
+  "@@locale": "en",
+  "appTitle": "Profile Whisperer",
+  "tagline": "Stalk. Understand. Slide.",
+  "uploadPhoto": "Upload Photo",
+  "takePhoto": "Take Photo",
+  "chooseFromGallery": "Choose from Gallery",
+  "analyzing": "Analyzing vibe...",
+  "vibeType": "Vibe Type",
+  "conversationStarters": "Conversation Starters",
+  "shareResult": "Share Result",
+  "tryAnother": "Try Another",
+  "dailyLimitReached": "Daily limit reached! Come back tomorrow.",
+  "usesRemaining": "{count} uses remaining today",
+  "@usesRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingTitle1": "Analyze Any Profile",
+  "onboardingDesc1": "Upload a screenshot of any Instagram profile",
+  "onboardingTitle2": "Get Their Vibe",
+  "onboardingDesc2": "AI reveals their personality and energy",
+  "onboardingTitle3": "Slide Into DMs",
+  "onboardingDesc3": "Get personalized conversation starters",
+  "getStarted": "Get Started",
+  "next": "Next",
+  "skip": "Skip"
+}

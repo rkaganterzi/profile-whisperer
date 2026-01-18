@@ -1,0 +1,88 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'providers/analysis_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/history_provider.dart';
+import 'providers/achievement_provider.dart';
+import 'providers/auth_provider.dart';
+import 'services/sound_service.dart';
+import 'screens/splash_screen.dart';
+import 'theme/app_theme.dart';
+
+bool firebaseInitialized = false;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    firebaseInitialized = true;
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    firebaseInitialized = false;
+    debugPrint('Firebase initialization error: $e');
+  }
+
+  // Initialize sound service
+  await SoundService().init();
+
+  runApp(const ProfileWhispererApp());
+}
+
+class ProfileWhispererApp extends StatelessWidget {
+  const ProfileWhispererApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AnalysisProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()),
+        ChangeNotifierProvider(create: (_) => AchievementProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          // Update status bar based on theme
+          SystemChrome.setSystemUIOverlayStyle(
+            SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: themeProvider.isDarkMode
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
+          );
+
+          return MaterialApp(
+            title: 'Profile Whisperer',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('tr'),
+              Locale('en'),
+            ],
+            locale: const Locale('tr'),
+            home: const SplashScreen(),
+          );
+        },
+      ),
+    );
+  }
+}
