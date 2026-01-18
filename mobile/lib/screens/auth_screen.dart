@@ -165,7 +165,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   // Title
                   const Center(
                     child: GradientText(
-                      'Profile Whisperer',
+                      'HuysuzApp',
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),

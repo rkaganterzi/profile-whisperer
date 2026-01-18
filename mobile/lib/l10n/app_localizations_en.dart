@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Profile Whisperer';
+  String get appTitle => 'HuysuzApp';
 
   @override
   String get tagline => 'Discover. Decode. Conquer.';

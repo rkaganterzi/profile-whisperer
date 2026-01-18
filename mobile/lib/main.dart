@@ -74,7 +74,7 @@ class ProfileWhispererApp extends StatelessWidget {
           SeductiveTheme.configureSystemUI();
 
           return MaterialApp(
-            title: 'Profile Whisperer',
+            title: 'HuysuzApp',
             debugShowCheckedModeBanner: false,
             theme: SeductiveTheme.darkTheme,
             darkTheme: SeductiveTheme.darkTheme,

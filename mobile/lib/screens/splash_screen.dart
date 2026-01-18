@@ -143,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
                           const SizedBox(height: 32),
                           // App name with neon effect
                           const AnimatedNeonText(
-                            'Profile Whisperer',
+                            'HuysuzApp',
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                             glowColor: SeductiveColors.neonMagenta,

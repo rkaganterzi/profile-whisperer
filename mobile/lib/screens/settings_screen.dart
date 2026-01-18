@@ -142,7 +142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildInfoTile(
                 icon: Icons.favorite_outline,
                 title: 'Yapimci',
-                trailing: 'Profile Whisperer',
+                trailing: 'HuysuzApp',
               ),
             ],
           ),
@@ -200,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Profile Whisperer',
+                  'HuysuzApp',
                   style: TextStyle(
                     color: SeductiveColors.silverMist,
                     fontSize: 14,

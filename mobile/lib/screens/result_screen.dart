@@ -159,7 +159,7 @@ class _ResultScreenState extends State<ResultScreen>
 
       await Share.shareXFiles(
         [XFile(imagePath)],
-        text: "Senin vibe tipin ne? Profile Whisperer'da kesfet!",
+        text: "Senin vibe tipin ne? HuysuzApp'da kesfet!",
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -791,7 +791,7 @@ Firsat: ${result.greenFlags.join(' - ')}
 
 ${result.compatibility}
 
-Senin vibe tipin ne? Profile Whisperer'da kesfet!''';
+Senin vibe tipin ne? HuysuzApp'da kesfet!''';
 
     await Share.share(text);
 

@@ -745,7 +745,7 @@ Iliski Tahmini: ${result.relationshipPrediction}
 Uyari Isaretleri:
 ${result.warningSigns.map((s) => '- $s').join('\n')}
 
-Derin Profil Analizi - Profile Whisperer''';
+Derin Profil Analizi - HuysuzApp''';
 
     await Share.share(text);
 

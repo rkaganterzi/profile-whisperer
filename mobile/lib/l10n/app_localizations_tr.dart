@@ -9,7 +9,7 @@ class AppLocalizationsTr extends AppLocalizations {
   AppLocalizationsTr([String locale = 'tr']) : super(locale);
 
   @override
-  String get appTitle => 'Profile Whisperer';
+  String get appTitle => 'HuysuzApp';
 
   @override
   String get tagline => 'Kesfet. Coz. Fethet.';

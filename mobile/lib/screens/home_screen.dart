@@ -1046,7 +1046,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         const SizedBox(height: 16),
                         // Logo
                         const AnimatedNeonText(
-                          'Profile Whisperer',
+                          'HuysuzApp',
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           glowColor: SeductiveColors.neonMagenta,

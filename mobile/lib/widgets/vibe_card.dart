@@ -368,7 +368,7 @@ class _VibeCardState extends State<VibeCard> with SingleTickerProviderStateMixin
                                 ),
                                 const SizedBox(width: 6),
                                 const Text(
-                                  'Profile Whisperer',
+                                  'HuysuzApp',
                                   style: TextStyle(
                                     color: SeductiveColors.dustyRose,
                                     fontSize: 12,

@@ -28,7 +28,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   final List<OnboardingPage> _pages = [
     OnboardingPage(
       emoji: '🔮',
-      title: 'Profile Whisperer',
+      title: 'HuysuzApp',
       subtitle: 'Kesfet. Coz. Fethet.',
       description: 'Instagram profillerini AI ile analiz et, gizemlerini coz!',
       color: SeductiveColors.neonMagenta,
