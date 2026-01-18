@@ -593,12 +593,34 @@ KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON.""
             end = result_content.rfind("}") + 1
             json_str = result_content[start:end]
 
-            result = json.loads(json_str)
+            # Try to fix common JSON issues
+            try:
+                result = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                print(f"JSON parse error: {e}")
+                print(f"Raw JSON: {json_str[:500]}...")
+                # Try to fix common issues
+                json_str = self._fix_json(json_str)
+                result = json.loads(json_str)
+
             # Add calculated engagement rate if not present
             if "engagement_rate" not in result or result["engagement_rate"] == 0:
                 result["engagement_rate"] = round(engagement_rate, 2)
 
             return result
+
+    def _fix_json(self, json_str: str) -> str:
+        """Try to fix common JSON issues from AI responses."""
+        import re
+        # Remove trailing commas before closing brackets
+        json_str = re.sub(r',\s*}', '}', json_str)
+        json_str = re.sub(r',\s*]', ']', json_str)
+        # Fix unescaped newlines in strings
+        json_str = re.sub(r'(?<!\\)\n', '\\n', json_str)
+        # Fix unescaped quotes in strings (tricky)
+        # Replace single quotes with double quotes in keys
+        json_str = re.sub(r"'([^']+)':", r'"\1":', json_str)
+        return json_str
 
 
 # Factory function
