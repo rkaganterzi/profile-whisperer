@@ -169,9 +169,10 @@ class InstagramScraper:
 
         try:
             async with async_playwright() as p:
-                # Launch headless browser
+                # Launch headless browser - use channel='chromium' to avoid headless shell issues
                 browser = await p.chromium.launch(
                     headless=True,
+                    channel='chromium',
                     args=[
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
@@ -179,6 +180,7 @@ class InstagramScraper:
                         '--disable-accelerated-2d-canvas',
                         '--disable-gpu',
                         '--window-size=1920,1080',
+                        '--single-process',
                     ]
                 )
 
