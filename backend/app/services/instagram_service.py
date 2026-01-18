@@ -115,6 +115,7 @@ class InstagramScraper:
 
         # Try multiple methods for deep fetch
         methods = [
+            (self._try_playwright_deep, "playwright_deep"),  # Headless browser - most reliable
             (self._try_web_profile_info_deep, "web_profile_info_deep"),
             (self._try_mobile_api_deep, "mobile_api_deep"),
             (self._try_graphql_deep, "graphql_deep"),
@@ -155,6 +156,232 @@ class InstagramScraper:
         # Fallback to regular fetch if deep fetch fails
         print("[Instagram] Deep fetch failed, falling back to regular fetch")
         return await self.fetch_profile(url_or_username)
+
+    async def _try_playwright_deep(self, username: str, max_posts: int = 9) -> Optional[InstagramProfile]:
+        """Use Playwright headless browser to scrape Instagram profile."""
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError:
+            print("[Instagram] Playwright not installed")
+            return None
+
+        print(f"[Instagram] Starting Playwright for @{username}")
+
+        try:
+            async with async_playwright() as p:
+                # Launch headless browser
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--disable-gpu',
+                        '--window-size=1920,1080',
+                    ]
+                )
+
+                # Create context with realistic settings
+                context = await browser.new_context(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent=random.choice(USER_AGENTS),
+                    locale='en-US',
+                    timezone_id='America/New_York',
+                )
+
+                page = await context.new_page()
+
+                # Navigate to profile
+                url = f"https://www.instagram.com/{username}/"
+                print(f"[Instagram] Playwright navigating to {url}")
+
+                try:
+                    await page.goto(url, wait_until='networkidle', timeout=30000)
+                except Exception as e:
+                    print(f"[Instagram] Playwright navigation timeout, continuing: {e}")
+
+                # Wait for content to load
+                await asyncio.sleep(2)
+
+                # Check if page requires login
+                page_content = await page.content()
+                if 'Login' in page_content[:2000] and 'password' in page_content.lower()[:5000]:
+                    print("[Instagram] Playwright: Page requires login, trying to scroll")
+
+                # Try to scroll to load more content
+                for _ in range(3):
+                    await page.evaluate('window.scrollBy(0, 500)')
+                    await asyncio.sleep(0.5)
+
+                # Extract profile info
+                profile_pic_url = None
+                bio = None
+                full_name = None
+                follower_count = None
+                is_private = False
+
+                # Get profile picture
+                try:
+                    profile_pic_elem = await page.query_selector('img[alt*="profile picture"]')
+                    if profile_pic_elem:
+                        profile_pic_url = await profile_pic_elem.get_attribute('src')
+                        print(f"[Instagram] Playwright found profile pic")
+                except:
+                    pass
+
+                # Try to get from meta tags
+                if not profile_pic_url:
+                    try:
+                        og_image = await page.query_selector('meta[property="og:image"]')
+                        if og_image:
+                            profile_pic_url = await og_image.get_attribute('content')
+                    except:
+                        pass
+
+                # Get bio and name from meta description
+                try:
+                    meta_desc = await page.query_selector('meta[name="description"]')
+                    if meta_desc:
+                        desc_content = await meta_desc.get_attribute('content')
+                        if desc_content:
+                            bio = desc_content
+                            # Parse follower count
+                            import re
+                            follower_match = re.search(r'([\d,.]+[KMB]?)\s*Followers', desc_content, re.IGNORECASE)
+                            if follower_match:
+                                follower_str = follower_match.group(1).replace(',', '')
+                                if 'K' in follower_str.upper():
+                                    follower_count = int(float(follower_str.upper().replace('K', '')) * 1000)
+                                elif 'M' in follower_str.upper():
+                                    follower_count = int(float(follower_str.upper().replace('M', '')) * 1000000)
+                                else:
+                                    try:
+                                        follower_count = int(follower_str)
+                                    except:
+                                        pass
+                except:
+                    pass
+
+                # Get title for name
+                try:
+                    og_title = await page.query_selector('meta[property="og:title"]')
+                    if og_title:
+                        title = await og_title.get_attribute('content')
+                        if title:
+                            name_match = re.search(r'^([^(@]+)', title)
+                            if name_match:
+                                full_name = name_match.group(1).strip()
+                except:
+                    pass
+
+                # Check if private
+                if 'This account is private' in page_content or 'This Account is Private' in page_content:
+                    is_private = True
+                    print("[Instagram] Playwright: Account is private")
+
+                # Get post images
+                post_images = []
+                post_captions = []
+                post_like_counts = []
+                post_comment_counts = []
+
+                if not is_private:
+                    # Find all post images
+                    try:
+                        # Wait for images to load
+                        await page.wait_for_selector('article img', timeout=5000)
+
+                        # Get all images in posts
+                        img_elements = await page.query_selector_all('article img')
+                        print(f"[Instagram] Playwright found {len(img_elements)} images in articles")
+
+                        image_urls = []
+                        for img in img_elements[:max_posts * 2]:  # Get extra in case some fail
+                            try:
+                                src = await img.get_attribute('src')
+                                if src and src not in image_urls:
+                                    if 'cdninstagram' in src or 'fbcdn' in src or 'scontent' in src:
+                                        image_urls.append(src)
+                            except:
+                                continue
+
+                        # If no article images, try any images
+                        if not image_urls:
+                            all_imgs = await page.query_selector_all('img')
+                            print(f"[Instagram] Playwright found {len(all_imgs)} total images")
+                            for img in all_imgs:
+                                try:
+                                    src = await img.get_attribute('src')
+                                    if src and 'cdninstagram' in src and src not in image_urls:
+                                        image_urls.append(src)
+                                except:
+                                    continue
+
+                        print(f"[Instagram] Playwright found {len(image_urls)} post URLs")
+
+                        # Download images
+                        async with httpx.AsyncClient(timeout=15.0) as client:
+                            for i, img_url in enumerate(image_urls[:max_posts]):
+                                if i > 0:
+                                    await asyncio.sleep(random.uniform(0.2, 0.5))
+                                img_bytes = await self._download_image(client, img_url)
+                                if img_bytes and len(img_bytes) > 5000:
+                                    post_images.append(img_bytes)
+                                    post_captions.append("")
+                                    post_like_counts.append(0)
+                                    post_comment_counts.append(0)
+
+                    except Exception as e:
+                        print(f"[Instagram] Playwright image extraction error: {e}")
+
+                # Download profile pic
+                profile_pic_bytes = None
+                if profile_pic_url:
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        profile_pic_bytes = await self._download_image(client, profile_pic_url)
+
+                await browser.close()
+
+                print(f"[Instagram] Playwright found {len(post_images)} post images")
+
+                # Add profile pic if not enough posts
+                if profile_pic_bytes and len(post_images) == 0:
+                    post_images.append(profile_pic_bytes)
+                    post_captions.append(bio or "")
+                    post_like_counts.append(0)
+                    post_comment_counts.append(0)
+                elif profile_pic_bytes and len(post_images) < 3:
+                    post_images.insert(0, profile_pic_bytes)
+                    post_captions.insert(0, bio or "")
+                    post_like_counts.insert(0, 0)
+                    post_comment_counts.insert(0, 0)
+
+                if len(post_images) < 1:
+                    return self._error_profile(username, "playwright_no_images")
+
+                return InstagramProfile(
+                    username=username,
+                    full_name=full_name,
+                    bio=bio,
+                    profile_pic_url=profile_pic_url,
+                    profile_pic_bytes=profile_pic_bytes,
+                    post_images=post_images,
+                    follower_count=follower_count,
+                    following_count=None,
+                    post_count=None,
+                    is_private=is_private,
+                    error=None,
+                    post_captions=post_captions,
+                    post_like_counts=post_like_counts,
+                    post_comment_counts=post_comment_counts,
+                )
+
+        except Exception as e:
+            print(f"[Instagram] Playwright error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     async def _try_mobile_api_deep(self, username: str, max_posts: int = 9) -> Optional[InstagramProfile]:
         """Try Instagram Mobile API for deep analysis."""

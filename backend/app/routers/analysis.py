@@ -1,4 +1,5 @@
 import uuid
+from typing import List
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Body
 from app.models import (
@@ -264,8 +265,8 @@ async def analyze_instagram_deep(
     if len(profile.post_images) < 1:
         return DeepAnalysisResponse(
             success=False,
-            error=f"Analiz için görsel bulunamadı. Instagram profili erişilemez olabilir.",
-            error_code="insufficient_posts",
+            error=f"Instagram bu profili koruma altına almış. Derin analiz için profil screenshot'ları yükleyebilirsin.",
+            error_code="instagram_blocked",
             username=profile.username,
             post_count_analyzed=len(profile.post_images)
         )
@@ -310,4 +311,89 @@ async def analyze_instagram_deep(
         result=build_deep_result(result),
         username=profile.username,
         post_count_analyzed=len(profile.post_images)
+    )
+
+
+@router.post("/analyze-screenshots-deep", response_model=DeepAnalysisResponse)
+async def analyze_screenshots_deep(
+    files: List[UploadFile] = File(...),
+    language: str = "tr",
+    settings: Settings = Depends(get_settings),
+    ai_service: AIService = Depends(get_ai_service),
+    rate_limiter: RateLimiter = Depends(get_rate_limiter),
+):
+    """
+    Deep analysis using uploaded screenshots.
+    Requires 3-9 screenshot images.
+    Premium feature only.
+    """
+    client_id = "anonymous"  # TODO: Get from auth with premium check
+
+    if not rate_limiter.check_limit(client_id):
+        return DeepAnalysisResponse(
+            success=False,
+            error="Günlük limit doldu. Yarın tekrar dene!",
+            error_code="rate_limit"
+        )
+
+    # Validate file count
+    if len(files) < 3:
+        return DeepAnalysisResponse(
+            success=False,
+            error=f"Derin analiz için en az 3 screenshot gerekli. {len(files)} dosya yüklendi.",
+            error_code="insufficient_files",
+            post_count_analyzed=len(files)
+        )
+
+    if len(files) > 9:
+        files = files[:9]  # Limit to 9 files
+
+    # Read image bytes
+    images = []
+    for file in files:
+        content = await file.read()
+        if len(content) > 1000:  # Basic validation
+            images.append(content)
+
+    if len(images) < 3:
+        return DeepAnalysisResponse(
+            success=False,
+            error="Yüklenen dosyalar geçersiz veya çok küçük.",
+            error_code="invalid_files",
+            post_count_analyzed=len(images)
+        )
+
+    # Perform deep analysis
+    try:
+        result = await ai_service.analyze_profile_deep(
+            images=images,
+            captions=[],  # No captions from screenshots
+            like_counts=[],
+            comment_counts=[],
+            follower_count=0,
+            bio="",
+            language=language,
+        )
+    except NotImplementedError:
+        return DeepAnalysisResponse(
+            success=False,
+            error="Derin analiz bu servis için desteklenmiyor",
+            error_code="not_implemented"
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return DeepAnalysisResponse(
+            success=False,
+            error=f"AI analizi başarısız: {str(e)}",
+            error_code="ai_error"
+        )
+
+    # Increment usage
+    rate_limiter.increment(client_id)
+
+    return DeepAnalysisResponse(
+        success=True,
+        result=build_deep_result(result),
+        post_count_analyzed=len(images)
     )

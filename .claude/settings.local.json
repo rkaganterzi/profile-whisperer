@@ -16,7 +16,9 @@
       "Bash(tree:*)",
       "Bash(git -C /mnt/c/Users/kagan.terzi/Desktop/whisperer log --oneline)",
       "Bash(wc:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(playwright install chromium)"
     ]
   }
 }
