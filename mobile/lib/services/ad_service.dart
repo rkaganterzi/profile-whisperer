@@ -39,9 +39,9 @@ class AdService {
 
   static String get rewardedAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-9682546527690102/7890123456'; // Android Rewarded (replace with actual ID)
+      return 'ca-app-pub-9682546527690102/5879204486'; // Android Rewarded
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-9682546527690102/7890123456'; // iOS Rewarded (replace with actual ID)
+      return 'ca-app-pub-9682546527690102/5879204486'; // iOS Rewarded
     }
     return '';
   }

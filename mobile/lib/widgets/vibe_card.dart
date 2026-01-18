@@ -378,6 +378,17 @@ class _VibeCardState extends State<VibeCard> with SingleTickerProviderStateMixin
                               ],
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          // Disclaimer
+                          Center(
+                            child: Text(
+                              '⚠️ Eglence amacli AI tahmini',
+                              style: TextStyle(
+                                color: SeductiveColors.silverMist.withOpacity(0.6),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

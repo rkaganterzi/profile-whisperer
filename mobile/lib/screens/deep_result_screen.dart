@@ -745,7 +745,9 @@ Iliski Tahmini: ${result.relationshipPrediction}
 Uyari Isaretleri:
 ${result.warningSigns.map((s) => '- $s').join('\n')}
 
-Derin Profil Analizi - HuysuzApp''';
+Derin Profil Analizi - HuysuzApp
+
+⚠️ Eglence amacli AI tahmini - ciddiye almayin!''';
 
     await Share.share(text);
 

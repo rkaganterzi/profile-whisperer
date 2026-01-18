@@ -10,6 +10,7 @@ import '../animations/page_transitions.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
+import 'terms_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -63,9 +64,20 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
+    // TODO: Test için terms'i sıfırla - production'da kaldır
+    // await prefs.remove('terms_accepted');
+    final termsAccepted = await TermsScreen.hasAcceptedTerms();
     final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
     if (!mounted) return;
+
+    // First check if terms are accepted
+    if (!termsAccepted) {
+      Navigator.of(context).pushReplacement(
+        SeductivePageRoute(page: const TermsScreen()),
+      );
+      return;
+    }
 
     if (!onboardingComplete) {
       Navigator.of(context).pushReplacement(
