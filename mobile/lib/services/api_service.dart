@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/analysis_result.dart';
 
@@ -32,50 +33,71 @@ class InstagramAnalysisResult {
 }
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8000/api/v1';
+  // Production URL (Render)
+  static const String _baseUrl = 'https://profile-whisperer.onrender.com/api/v1';
 
-  // For development, change this to your local IP when testing on device
-  // static const String _baseUrl = 'http://192.168.1.x:8000/api/v1';
+  // For local development:
+  // static const String _baseUrl = 'http://10.0.2.2:8000/api/v1';  // Android emulator
+  // static const String _baseUrl = 'http://localhost:8000/api/v1'; // iOS simulator / Web
 
   Future<AnalysisResult> analyzeProfile(File imageFile, {String language = 'tr'}) async {
     final uri = Uri.parse('$_baseUrl/analyze?language=$language');
+    debugPrint('ApiService: Uploading image to $uri');
+    debugPrint('ApiService: File path: ${imageFile.path}');
 
-    final request = http.MultipartRequest('POST', uri)
-      ..files.add(await http.MultipartFile.fromPath(
-        'image',
-        imageFile.path,
-      ));
+    try {
+      final request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath(
+          'image',
+          imageFile.path,
+        ));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('ApiService: Sending multipart request...');
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      return AnalysisResult.fromJson(json);
-    } else if (response.statusCode == 429) {
-      throw RateLimitException('Daily limit reached');
-    } else {
-      throw ApiException('Failed to analyze: ${response.statusCode}');
+      debugPrint('ApiService: Image upload response status=${response.statusCode}');
+      debugPrint('ApiService: Image upload response body=${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return AnalysisResult.fromJson(json);
+      } else if (response.statusCode == 429) {
+        throw RateLimitException('Daily limit reached');
+      } else {
+        throw ApiException('Failed to analyze: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('ApiService: Image upload error - $e');
+      rethrow;
     }
   }
 
   Future<InstagramAnalysisResult> analyzeInstagram(String urlOrUsername, {String language = 'tr'}) async {
     final uri = Uri.parse('$_baseUrl/analyze-instagram');
+    debugPrint('ApiService: POST $uri with url=$urlOrUsername');
 
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'url': urlOrUsername,
-        'language': language,
-      }),
-    );
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'url': urlOrUsername,
+          'language': language,
+        }),
+      );
+      debugPrint('ApiService: Response status=${response.statusCode}');
+      debugPrint('ApiService: Response body=${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      return InstagramAnalysisResult.fromJson(json);
-    } else {
-      throw ApiException('Instagram analizi başarısız: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return InstagramAnalysisResult.fromJson(json);
+      } else {
+        throw ApiException('Instagram analizi başarısız: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('ApiService: Exception - $e');
+      rethrow;
     }
   }
 

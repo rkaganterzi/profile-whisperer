@@ -82,28 +82,38 @@ class AuthProvider extends ChangeNotifier {
 
   // Sign in with Google
   Future<bool> signInWithGoogle() async {
-    if (_authService == null) return false;
+    debugPrint('AuthProvider: signInWithGoogle started');
+    if (_authService == null) {
+      debugPrint('AuthProvider: _authService is null');
+      return false;
+    }
     try {
       _status = AuthStatus.loading;
       _errorMessage = null;
       notifyListeners();
 
+      debugPrint('AuthProvider: calling _authService.signInWithGoogle()');
       _user = await _authService!.signInWithGoogle();
+      debugPrint('AuthProvider: signInWithGoogle returned, user: $_user');
       if (_user != null) {
+        debugPrint('AuthProvider: user is not null, setting authenticated');
         _status = AuthStatus.authenticated;
         notifyListeners();
         return true;
       } else {
+        debugPrint('AuthProvider: user is null, setting unauthenticated');
         _status = AuthStatus.unauthenticated;
         notifyListeners();
         return false;
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('AuthProvider: FirebaseAuthException: ${e.code}');
       _status = AuthStatus.error;
       _errorMessage = _getErrorMessage(e.code);
       notifyListeners();
       return false;
     } catch (e) {
+      debugPrint('AuthProvider: Generic error: $e');
       _status = AuthStatus.error;
       _errorMessage = 'Bir hata oluştu. Lütfen tekrar deneyin.';
       notifyListeners();
@@ -204,19 +214,20 @@ class AuthProvider extends ChangeNotifier {
   // Use credit
   Future<bool> useCredit() async {
     if (_user == null) return false;
-    if (_authService == null) {
-      // Mock: just decrement credits locally
-      _user = _user!.copyWith(credits: _user!.credits - 1);
-      notifyListeners();
-      return true;
-    }
 
-    final success = await _authService!.useCredit(_user!.uid);
-    if (success) {
-      _user = await _authService!.getAppUser(_user!.uid);
-      notifyListeners();
+    // Always update locally first to ensure UI responsiveness
+    _user = _user!.copyWith(credits: _user!.credits - 1);
+    notifyListeners();
+
+    // Try to sync with Firestore in background, but don't block
+    if (_authService != null) {
+      try {
+        await _authService!.useCredit(_user!.uid);
+      } catch (e) {
+        debugPrint('AuthProvider: useCredit Firestore sync failed: $e');
+      }
     }
-    return success;
+    return true;
   }
 
   // Refresh user data

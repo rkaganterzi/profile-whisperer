@@ -157,9 +157,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    debugPrint('HomeScreen: _pickImage called with source=$source');
     // Check credits first
-    if (!_checkCredits()) return;
+    if (!_checkCredits()) {
+      debugPrint('HomeScreen: Credit check failed for image');
+      return;
+    }
 
+    debugPrint('HomeScreen: Opening image picker...');
     final XFile? image = await _picker.pickImage(
       source: source,
       maxWidth: 1024,
@@ -167,33 +172,50 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       imageQuality: 85,
     );
 
+    debugPrint('HomeScreen: Image picked: ${image?.path}');
     if (image != null && mounted) {
       final provider = context.read<AnalysisProvider>();
       final imageSource = source == ImageSource.camera ? 'camera' : 'gallery';
+      debugPrint('HomeScreen: Starting image analysis...');
       await provider.analyzeProfile(File(image.path));
 
+      debugPrint('HomeScreen: After analysis - state=${provider.state}, result=${provider.result}, mounted=$mounted');
       if (mounted && provider.state == AnalysisState.success && provider.result != null) {
-        // Use credit after successful analysis
-        await _useCredit();
+        debugPrint('HomeScreen: Analysis success! Processing...');
 
-        // Save to history
-        final historyProvider = context.read<HistoryProvider>();
-        await historyProvider.addToHistory(
-          result: provider.result!,
-          imageSource: imageSource,
-        );
+        try {
+          // Use credit after successful analysis
+          debugPrint('HomeScreen: Using credit...');
+          await _useCredit();
+          debugPrint('HomeScreen: Credit used');
 
-        // Check achievements
-        final achievementProvider = context.read<AchievementProvider>();
-        await achievementProvider.checkAnalysisAchievements(historyProvider.totalAnalyses);
-
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ResultScreen(),
-            ),
+          // Save to history
+          debugPrint('HomeScreen: Saving to history...');
+          final historyProvider = context.read<HistoryProvider>();
+          await historyProvider.addToHistory(
+            result: provider.result!,
+            imageSource: imageSource,
           );
+          debugPrint('HomeScreen: Saved to history');
+
+          // Check achievements
+          debugPrint('HomeScreen: Checking achievements...');
+          final achievementProvider = context.read<AchievementProvider>();
+          await achievementProvider.checkAnalysisAchievements(historyProvider.totalAnalyses);
+          debugPrint('HomeScreen: Achievements checked');
+
+          if (mounted) {
+            debugPrint('HomeScreen: NOW navigating to ResultScreen!');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ResultScreen(),
+              ),
+            );
+            debugPrint('HomeScreen: Navigation complete');
+          }
+        } catch (e) {
+          debugPrint('HomeScreen: Error during post-analysis: $e');
         }
       }
     }
@@ -201,11 +223,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Future<void> _analyzeInstagram() async {
     final url = _instagramController.text.trim();
-    if (url.isEmpty) return;
+    debugPrint('HomeScreen: _analyzeInstagram called with url=$url');
+    if (url.isEmpty) {
+      debugPrint('HomeScreen: URL is empty, returning');
+      return;
+    }
 
     // Check credits first
-    if (!_checkCredits()) return;
+    final authProvider = context.read<AuthProvider>();
+    debugPrint('HomeScreen: Credits check - credits=${authProvider.credits}, canAnalyze=${authProvider.canAnalyze}');
+    if (!_checkCredits()) {
+      debugPrint('HomeScreen: Credit check failed');
+      return;
+    }
 
+    debugPrint('HomeScreen: Starting analysis...');
     HapticFeedback.lightImpact();
     final provider = context.read<AnalysisProvider>();
     await provider.analyzeInstagram(url);

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -69,17 +70,29 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       );
     }
 
-    if (!success && mounted) {
+    if (success && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else if (!success && mounted) {
       _showError(authProvider.errorMessage ?? 'Bir hata oluştu');
     }
   }
 
   Future<void> _signInWithGoogle() async {
+    debugPrint('AuthScreen: _signInWithGoogle started');
     HapticFeedback.lightImpact();
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.signInWithGoogle();
+    debugPrint('AuthScreen: signInWithGoogle returned: $success, mounted: $mounted');
 
-    if (!success && mounted) {
+    if (success && mounted) {
+      debugPrint('AuthScreen: Navigating to HomeScreen');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else if (!success && mounted) {
+      debugPrint('AuthScreen: Showing error: ${authProvider.errorMessage}');
       _showError(authProvider.errorMessage ?? 'Google ile giriş başarısız');
     }
   }
@@ -87,7 +100,13 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   Future<void> _continueAsGuest() async {
     HapticFeedback.lightImpact();
     final authProvider = context.read<AuthProvider>();
-    await authProvider.continueAsGuest();
+    final success = await authProvider.continueAsGuest();
+
+    if (success && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
   }
 
   void _showError(String message) {

@@ -8,7 +8,8 @@
       "Bash(powershell.exe -Command \"cd C:\\\\Users\\\\kagan.terzi\\\\Desktop\\\\whisperer\\\\mobile; C:\\\\flutter\\\\bin\\\\flutter.bat clean\")",
       "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\kagan.terzi\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe'' logcat -d *:E | Select-String -Pattern ''flutter|FATAL|Exception|Error'' | Select-Object -Last 50\")",
       "Bash(powershell.exe -Command \"& ''C:\\\\Users\\\\kagan.terzi\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe'' logcat -d | Select-String -Pattern ''flutter|profile_whisperer'' | Select-Object -Last 40\")",
-      "Bash(powershell.exe -Command:*)"
+      "Bash(powershell.exe -Command:*)",
+      "Bash(/mnt/c/Users/kagan.terzi/AppData/Local/Android/Sdk/platform-tools/adb.exe logcat -d)"
     ]
   }
 }
