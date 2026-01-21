@@ -1,7 +1,7 @@
 import uuid
-from typing import List
+from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Body
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Body, Header, Request
 from app.models import (
     AnalysisResult,
     RemainingUsesResponse,
@@ -17,6 +17,25 @@ from app.services.rate_limiter import RateLimiter, get_rate_limiter
 from app.services.instagram_service import get_instagram_scraper, InstagramScraper
 
 router = APIRouter()
+
+
+def get_client_id(
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
+    request: Request = None,
+) -> str:
+    """
+    Get client ID for rate limiting.
+    Priority: X-User-ID header > Client IP
+    """
+    # Use Firebase user ID if provided
+    if x_user_id and x_user_id.strip():
+        return f"user:{x_user_id.strip()}"
+
+    # Fallback to client IP
+    if request and request.client:
+        return f"ip:{request.client.host}"
+
+    return "anonymous"
 
 
 def build_result(result: dict) -> AnalysisResult:
@@ -39,9 +58,11 @@ def build_result(result: dict) -> AnalysisResult:
 
 @router.post("/analyze", response_model=AnalysisResult)
 async def analyze_profile(
+    request: Request,
     image: UploadFile = File(...),
     language: str = "tr",
     roast_mode: bool = True,
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
     settings: Settings = Depends(get_settings),
     ai_service: AIService = Depends(get_ai_service),
     rate_limiter: RateLimiter = Depends(get_rate_limiter),
@@ -49,8 +70,9 @@ async def analyze_profile(
     """
     Analyze a profile photo and return vibe analysis with conversation starters.
     """
-    # Check rate limit (using IP for now, user_id later)
-    client_id = "anonymous"  # TODO: Get from auth
+    # Get client ID from header or IP
+    client_id = get_client_id(x_user_id, request)
+    print(f"[Rate Limit] Client ID: {client_id}")
 
     if not rate_limiter.check_limit(client_id):
         raise HTTPException(
@@ -80,7 +102,9 @@ async def analyze_profile(
 
 @router.post("/analyze-instagram", response_model=InstagramAnalysisResponse)
 async def analyze_instagram_profile(
-    request: InstagramAnalysisRequest,
+    request: Request,
+    body: InstagramAnalysisRequest,
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
     settings: Settings = Depends(get_settings),
     ai_service: AIService = Depends(get_ai_service),
     rate_limiter: RateLimiter = Depends(get_rate_limiter),
@@ -90,7 +114,8 @@ async def analyze_instagram_profile(
     Analyze an Instagram profile by URL.
     Returns success with result, or error with fallback suggestion.
     """
-    client_id = "anonymous"
+    client_id = get_client_id(x_user_id, request)
+    print(f"[Rate Limit] Client ID: {client_id}")
 
     if not rate_limiter.check_limit(client_id):
         return InstagramAnalysisResponse(
@@ -100,7 +125,7 @@ async def analyze_instagram_profile(
         )
 
     # Fetch Instagram profile
-    profile = await instagram.fetch_profile(request.url)
+    profile = await instagram.fetch_profile(body.url)
 
     if profile.error:
         error_messages = {
@@ -152,8 +177,8 @@ async def analyze_instagram_profile(
     try:
         result = await ai_service.analyze_profile(
             image_to_analyze,
-            request.language,
-            roast_mode=request.roast_mode
+            body.language,
+            roast_mode=body.roast_mode
         )
     except Exception as e:
         import traceback
@@ -177,13 +202,15 @@ async def analyze_instagram_profile(
 
 @router.get("/remaining-uses", response_model=RemainingUsesResponse)
 async def get_remaining_uses(
+    request: Request,
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
     settings: Settings = Depends(get_settings),
     rate_limiter: RateLimiter = Depends(get_rate_limiter),
 ):
     """
     Get remaining daily uses for the current user.
     """
-    client_id = "anonymous"  # TODO: Get from auth
+    client_id = get_client_id(x_user_id, request)
     remaining = rate_limiter.get_remaining(client_id)
 
     return RemainingUsesResponse(
@@ -210,7 +237,9 @@ def build_deep_result(result: dict) -> DeepAnalysisResult:
 
 @router.post("/analyze-instagram-deep", response_model=DeepAnalysisResponse)
 async def analyze_instagram_deep(
-    request: DeepAnalysisRequest,
+    request: Request,
+    body: DeepAnalysisRequest,
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
     settings: Settings = Depends(get_settings),
     ai_service: AIService = Depends(get_ai_service),
     rate_limiter: RateLimiter = Depends(get_rate_limiter),
@@ -221,7 +250,8 @@ async def analyze_instagram_deep(
     Analyzes 6-9 posts with captions, likes, and comments.
     Premium feature only.
     """
-    client_id = "anonymous"  # TODO: Get from auth with premium check
+    client_id = get_client_id(x_user_id, request)
+    print(f"[Rate Limit] Client ID: {client_id}")
 
     if not rate_limiter.check_limit(client_id):
         return DeepAnalysisResponse(
@@ -231,7 +261,7 @@ async def analyze_instagram_deep(
         )
 
     # Fetch profile with deep data
-    profile = await instagram.fetch_profile_deep(request.url, max_posts=9)
+    profile = await instagram.fetch_profile_deep(body.url, max_posts=9)
 
     if profile.error:
         error_messages = {
@@ -284,7 +314,7 @@ async def analyze_instagram_deep(
             comment_counts=profile.post_comment_counts,
             follower_count=profile.follower_count or 0,
             bio=profile.bio or "",
-            language=request.language,
+            language=body.language,
         )
     except NotImplementedError:
         return DeepAnalysisResponse(
@@ -316,8 +346,10 @@ async def analyze_instagram_deep(
 
 @router.post("/analyze-screenshots-deep", response_model=DeepAnalysisResponse)
 async def analyze_screenshots_deep(
+    request: Request,
     files: List[UploadFile] = File(...),
     language: str = "tr",
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
     settings: Settings = Depends(get_settings),
     ai_service: AIService = Depends(get_ai_service),
     rate_limiter: RateLimiter = Depends(get_rate_limiter),
@@ -327,7 +359,8 @@ async def analyze_screenshots_deep(
     Requires 3-9 screenshot images.
     Premium feature only.
     """
-    client_id = "anonymous"  # TODO: Get from auth with premium check
+    client_id = get_client_id(x_user_id, request)
+    print(f"[Rate Limit] Client ID: {client_id}")
 
     if not rate_limiter.check_limit(client_id):
         return DeepAnalysisResponse(

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 import '../main.dart' show firebaseInitialized;
 
 enum AuthStatus {
@@ -63,6 +64,7 @@ class AuthProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
       lastCreditRefresh: DateTime.now(),
     );
+    ApiService.setUserId(_user!.uid);
     notifyListeners();
   }
 
@@ -70,12 +72,14 @@ class AuthProvider extends ChangeNotifier {
     if (firebaseUser == null) {
       _status = AuthStatus.unauthenticated;
       _user = null;
+      ApiService.setUserId(null);
     } else {
       _status = AuthStatus.loading;
       notifyListeners();
 
       _user = await _authService?.createOrUpdateUser(firebaseUser);
       _status = AuthStatus.authenticated;
+      ApiService.setUserId(_user?.uid);
     }
     notifyListeners();
   }
@@ -208,6 +212,7 @@ class AuthProvider extends ChangeNotifier {
     await _authService?.signOut();
     _user = null;
     _status = AuthStatus.unauthenticated;
+    ApiService.setUserId(null);
     notifyListeners();
   }
 

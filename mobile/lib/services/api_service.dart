@@ -41,6 +41,22 @@ class ApiService {
   // static const String _baseUrl = 'http://10.0.2.2:8000/api/v1';  // Android emulator
   // static const String _baseUrl = 'http://localhost:8000/api/v1'; // iOS simulator / Web
 
+  // User ID for rate limiting (set from AuthProvider)
+  static String? _userId;
+
+  static void setUserId(String? userId) {
+    _userId = userId;
+    debugPrint('ApiService: User ID set to $userId');
+  }
+
+  Map<String, String> _getAuthHeaders() {
+    final headers = <String, String>{};
+    if (_userId != null && _userId!.isNotEmpty) {
+      headers['X-User-ID'] = _userId!;
+    }
+    return headers;
+  }
+
   Future<AnalysisResult> analyzeProfile(
     File imageFile, {
     String language = 'tr',
@@ -48,10 +64,11 @@ class ApiService {
   }) async {
     final uri = Uri.parse('$_baseUrl/analyze?language=$language&roast_mode=$roastMode');
     debugPrint('ApiService: Uploading image to $uri');
-    debugPrint('ApiService: File path: ${imageFile.path}, roastMode: $roastMode');
+    debugPrint('ApiService: File path: ${imageFile.path}, roastMode: $roastMode, userId: $_userId');
 
     try {
       final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(_getAuthHeaders())
         ..files.add(await http.MultipartFile.fromPath(
           'image',
           imageFile.path,
@@ -84,12 +101,15 @@ class ApiService {
     bool roastMode = true,
   }) async {
     final uri = Uri.parse('$_baseUrl/analyze-instagram');
-    debugPrint('ApiService: POST $uri with url=$urlOrUsername, roastMode=$roastMode');
+    debugPrint('ApiService: POST $uri with url=$urlOrUsername, roastMode=$roastMode, userId: $_userId');
 
     try {
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          ..._getAuthHeaders(),
+        },
         body: jsonEncode({
           'url': urlOrUsername,
           'language': language,
@@ -117,12 +137,15 @@ class ApiService {
     bool roastMode = true,
   }) async {
     final uri = Uri.parse('$_baseUrl/analyze-instagram-deep');
-    debugPrint('ApiService: POST $uri with url=$urlOrUsername (deep analysis)');
+    debugPrint('ApiService: POST $uri with url=$urlOrUsername (deep analysis), userId: $_userId');
 
     try {
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          ..._getAuthHeaders(),
+        },
         body: jsonEncode({
           'url': urlOrUsername,
           'language': language,
