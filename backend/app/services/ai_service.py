@@ -373,7 +373,7 @@ KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON.""
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-3-haiku-20240307",
+                    "model": "claude-3-5-haiku-20241022",
                     "max_tokens": 1024,
                     "system": system_prompt,
                     "messages": [
@@ -570,7 +570,7 @@ KURAL: SADECE valid JSON dönersin. Markdown yok, açıklama yok, sadece JSON.""
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-3-haiku-20240307",
+                    "model": "claude-3-5-haiku-20241022",
                     "max_tokens": 2048,
                     "system": system_prompt,
                     "messages": [

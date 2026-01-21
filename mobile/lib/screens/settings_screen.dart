@@ -49,59 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Analysis Mode Section
-          _buildSectionTitle('Analiz Modu'),
-          const SizedBox(height: 12),
-          _buildCard(
-            children: [
-              _buildSwitchTile(
-                icon: Icons.local_fire_department_rounded,
-                title: 'Roast Modu',
-                subtitle: 'Acimasiz ve komik analizler',
-                value: settingsProvider.roastModeEnabled,
-                onChanged: (value) async {
-                  await settingsProvider.setRoastMode(value);
-                },
-              ),
-              if (!settingsProvider.roastModeEnabled) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: SeductiveColors.neonCyan.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: SeductiveColors.neonCyan.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 18,
-                          color: SeductiveColors.neonCyan,
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Roast modu kapaliyken daha nazik analizler alirsin',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: SeductiveColors.silverMist,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
           // Sound Section
           _buildSectionTitle('Ses'),
           const SizedBox(height: 12),

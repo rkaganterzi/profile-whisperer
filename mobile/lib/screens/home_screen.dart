@@ -575,6 +575,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void _showAnalysisOptions() {
     HapticFeedback.lightImpact();
     final authProvider = context.read<AuthProvider>();
+    final settingsProvider = context.read<SettingsProvider>();
 
     showModalBottomSheet(
       context: context,
@@ -583,85 +584,162 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: SeductiveColors.smokyViolet,
-                    borderRadius: BorderRadius.circular(2),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: SeductiveColors.smokyViolet,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                const GradientText(
-                  'Nasil analiz edelim?',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  gradient: SeductiveColors.primaryGradient,
-                ),
-                const SizedBox(height: 24),
-                // Deep Analysis Option (Premium)
-                _buildOptionCard(
-                  icon: Icons.psychology_rounded,
-                  title: 'Derin Analiz',
-                  subtitle: authProvider.isPremium ? '6-9 post analizi' : 'VIP ozellik',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF9C27B0), Color(0xFFE91E63)],
+                  const SizedBox(height: 24),
+                  const GradientText(
+                    'Nasil analiz edelim?',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    gradient: SeductiveColors.primaryGradient,
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    if (authProvider.isPremium) {
-                      setState(() => _showInstagramInput = true);
-                      _isDeepAnalysis = true;
-                    } else {
-                      Navigator.push(
-                        context,
-                        SeductivePageRoute(page: const PaywallScreen()),
-                      );
-                    }
-                  },
-                  isPremium: true,
-                  isLocked: !authProvider.isPremium,
-                ),
-                const SizedBox(height: 12),
-                // Instagram Link Option
-                _buildOptionCard(
-                  icon: Icons.link_rounded,
-                  title: 'Instagram Linki',
-                  subtitle: 'Profil linkini yapistir',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE1306C), Color(0xFFF77737)],
+                  const SizedBox(height: 24),
+                  // Deep Analysis Option (Premium)
+                  _buildOptionCard(
+                    icon: Icons.psychology_rounded,
+                    title: 'Derin Analiz',
+                    subtitle: authProvider.isPremium ? '6-9 post analizi' : 'VIP ozellik',
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF9C27B0), Color(0xFFE91E63)],
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (authProvider.isPremium) {
+                        setState(() => _showInstagramInput = true);
+                        _isDeepAnalysis = true;
+                      } else {
+                        Navigator.push(
+                          context,
+                          SeductivePageRoute(page: const PaywallScreen()),
+                        );
+                      }
+                    },
+                    isPremium: true,
+                    isLocked: !authProvider.isPremium,
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _showInstagramInput = true;
-                      _isDeepAnalysis = false;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                // Screenshot Option
-                _buildOptionCard(
-                  icon: Icons.screenshot_rounded,
-                  title: 'Screenshot Yukle',
-                  subtitle: 'Profil ekran goruntusu',
-                  gradient: SeductiveColors.primaryGradient,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showImageSourceDialog();
-                  },
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  // Instagram Link Option
+                  _buildOptionCard(
+                    icon: Icons.link_rounded,
+                    title: 'Instagram Linki',
+                    subtitle: 'Profil linkini yapistir',
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE1306C), Color(0xFFF77737)],
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _showInstagramInput = true;
+                        _isDeepAnalysis = false;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // Screenshot Option
+                  _buildOptionCard(
+                    icon: Icons.screenshot_rounded,
+                    title: 'Screenshot Yukle',
+                    subtitle: 'Profil ekran goruntusu',
+                    gradient: SeductiveColors.primaryGradient,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showImageSourceDialog();
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  // Acımasız Mod Toggle
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: SeductiveColors.obsidianDark,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: settingsProvider.roastModeEnabled
+                            ? SeductiveColors.neonCoral.withOpacity(0.5)
+                            : SeductiveColors.smokyViolet,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: settingsProvider.roastModeEnabled
+                                ? const LinearGradient(
+                                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                                  )
+                                : null,
+                            color: settingsProvider.roastModeEnabled
+                                ? null
+                                : SeductiveColors.smokyViolet,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.local_fire_department_rounded,
+                            color: settingsProvider.roastModeEnabled
+                                ? SeductiveColors.lunarWhite
+                                : SeductiveColors.dustyRose,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Acimasiz Mod',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: SeductiveColors.lunarWhite,
+                                ),
+                              ),
+                              Text(
+                                settingsProvider.roastModeEnabled
+                                    ? 'Aci ve komik yorumlar'
+                                    : 'Nazik ve kibar yorumlar',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: SeductiveColors.dustyRose,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: settingsProvider.roastModeEnabled,
+                          onChanged: (value) async {
+                            await settingsProvider.setRoastMode(value);
+                            setModalState(() {});
+                          },
+                          activeColor: SeductiveColors.neonCoral,
+                          activeTrackColor: SeductiveColors.neonCoral.withOpacity(0.3),
+                          inactiveThumbColor: SeductiveColors.dustyRose,
+                          inactiveTrackColor: SeductiveColors.smokyViolet,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
